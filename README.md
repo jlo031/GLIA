@@ -15,8 +15,7 @@ This library provides code for supervised classification of SAR imagery using th
     conda activate LGIA
     
     # install required packages
-    conda install -y ipython scipy loguru
-    pip install -U scikit-learn
+    conda install -y ipython scipy loguru scikit-learn
 
 
 ### Installation
