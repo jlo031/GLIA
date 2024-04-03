@@ -7,6 +7,9 @@ This library provides code for supervised classification of SAR imagery using th
 
 
 ### Preparation
+The Geospatial Data Abstraction Layer ([GDAL]) library is required to run the code.
+The simplest way to use GDAL with Python is to get the Anaconda Python distribution.
+It is recommended to run the code in a virtual environment.
 
     # create new conda environment
     conda create -y -n LGIA gdal
