@@ -26,7 +26,7 @@ It is recommended to run the code in a virtual environment.
 Clone the repository:
 
     # clone the repository
-    git clone git@github.com:jlo031/ice_type_classification.git
+    git clone git@github.com:jlo031/glia.git
 
 Change into the main directory of the cloned repository (it should contain the '_setup.py_' file) and install the library:
 
