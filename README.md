@@ -1,4 +1,4 @@
-# Supervised classification with Linear Gaussian Incidence Angle (LGIA) classifier
+# Supervised classification with Gaussian Linear Incidence Angle (GLIA) classifier
 
 This library provides code for supervised classification of SAR imagery using the LGIA classifier, which accounts for linear per-class variation of backscatter intensity with incident angle. The concept was initially developed for sea ice classification in Sentinel-1 EW data but can be transferred to other sensors and applications. Further explanation and theoretical background of classifer is given in:
 - [Lohse et al (2020)]
@@ -12,10 +12,10 @@ The simplest way to use GDAL with Python is to get the Anaconda Python distribut
 It is recommended to run the code in a virtual environment.
 
     # create new conda environment
-    conda create -y -n LGIA gdal
+    conda create -y -n GLIA gdal
     
     # activate environment
-    conda activate LGIA
+    conda activate GLIA
     
     # install required packages
     conda install -y ipython scipy loguru scikit-learn
