@@ -1,5 +1,5 @@
 """
----- This is <linear_gaussian_IA_classifier.py> ----
+---- This is <gaussian_linear_IA_classifier.py> ----
 
 Implementation of different supervised multi-dimensional Bayesian classifiers:
     -> gaussian_clf: Gaussian PDF with mean vector and covariance matrix per-class
@@ -17,11 +17,11 @@ from sklearn.linear_model import LinearRegression
 # -------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------- #
 
-class LGIA_clf:
+class GLIA_clf:
 
     def __init__(self, IA_0=30, override_slopes=False):
         self.info = dict()
-        self.info['type'] = 'LGIA'
+        self.info['type'] = 'GLIA'
         self.IA_0         = IA_0
 
 # ---------------- #
@@ -414,33 +414,33 @@ def read_classifier_dict_from_pickle(input_file):
 # -------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------- #
 
-def make_LGIA_clf_object_from_params_dict(LGIA_params_dict):
+def make_GLIA_clf_object_from_params_dict(GLIA_params_dict):
     """Make an LGIA_classifier object from parameters in input dict
 
     Parameters
     ----------
-    LGIA_params_dict : dictionary with with classifier parameters
+    GLIA_params_dict : dictionary with with classifier parameters
 
     Returns
     -------
-    clf : gaussian_clf classifier object
+    clf : GLIA_clf classifier object
 
     :param  gaussian_IA_params_dict: dictionary with with classifier parameters
     :return clf: classifier object (gaussian_IA_clf)
      """
 
     # initialize classifier object
-    clf = LGIA_clf()
+    clf = GLIA_clf()
 
     # set classifier parameters from input dict
-    clf.a               = LGIA_params_dict['a']
-    clf.b               = LGIA_params_dict['b']
-    clf.mu              = LGIA_params_dict['mu']
-    clf.Sigma           = LGIA_params_dict['Sigma']
-    clf.IA_0            = LGIA_params_dict['IA_0']
-    clf.n_class         = LGIA_params_dict['n_class']
-    clf.n_feat          = LGIA_params_dict['n_feat']
-    clf.trained_classes = LGIA_params_dict['trained_classes']
+    clf.a               = GLIA_params_dict['a']
+    clf.b               = GLIA_params_dict['b']
+    clf.mu              = GLIA_params_dict['mu']
+    clf.Sigma           = GLIA_params_dict['Sigma']
+    clf.IA_0            = GLIA_params_dict['IA_0']
+    clf.n_class         = GLIA_params_dict['n_class']
+    clf.n_feat          = GLIA_params_dict['n_feat']
+    clf.trained_classes = GLIA_params_dict['trained_classes']
 
     # define the multivariate_normal for each class
     clf.class_mvn = dict()
@@ -452,32 +452,32 @@ def make_LGIA_clf_object_from_params_dict(LGIA_params_dict):
 # -------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------- #
 
-def make_LGIA_params_dict_from_clf_object(clf):
-    """Make an LGIA_params dict from a LGIA_classifier object
+def make_GLIA_params_dict_from_clf_object(clf):
+    """Make an GLIA_params dict from a LGIA_classifier object
 
     Parameters
     ----------
-    clf : LGIA_clf classifier object
+    clf : GLIA_clf classifier object
 
     Returns
     -------
-    LGIA_params_dict : dictionary with with classifier parameters
+    GLIA_params_dict : dictionary with with classifier parameters
      """
 
     # initialize dict for clf parameters
-    LGIA_params_dict = dict()
+    GLIA_params_dict = dict()
 
     # fill in dict with clf parameters
-    LGIA_params_dict['a']               = clf.a
-    LGIA_params_dict['b']               = clf.b
-    LGIA_params_dict['mu']              = clf.mu
-    LGIA_params_dict['Sigma']           = clf.Sigma
-    LGIA_params_dict['IA_0']            = clf.IA_0
-    LGIA_params_dict['n_class']         = clf.n_class
-    LGIA_params_dict['n_feat']          = clf.n_feat
-    LGIA_params_dict['trained_classes'] = clf.trained_classes
+    GLIA_params_dict['a']               = clf.a
+    GLIA_params_dict['b']               = clf.b
+    GLIA_params_dict['mu']              = clf.mu
+    GLIA_params_dict['Sigma']           = clf.Sigma
+    GLIA_params_dict['IA_0']            = clf.IA_0
+    GLIA_params_dict['n_class']         = clf.n_class
+    GLIA_params_dict['n_feat']          = clf.n_feat
+    GLIA_params_dict['trained_classes'] = clf.trained_classes
 
-    return LGIA_params_dict
+    return GLIA_params_dict
 
 # -------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------- #
@@ -541,4 +541,4 @@ def make_gaussian_clf_object_from_params_dict(gaussian_params_dict):
 # -------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------- #
 
-# ---- End of <linear_gaussian_IA_classifier.py> ----
+# ---- End of <gaussian_linear_IA_classifier.py> ----
