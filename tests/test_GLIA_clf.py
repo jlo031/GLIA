@@ -1,4 +1,4 @@
-# ---- This is <test_LGIA_clf.py> ----
+# ---- This is <test_GLIA_clf.py> ----
 
 import numpy as np
 from sklearn.model_selection import train_test_split
@@ -6,7 +6,7 @@ from sklearn.model_selection import train_test_split
 import os
 from loguru import logger
 
-import LGIA_classifier.linear_gaussian_IA_classifier as LGIA
+import GLIA_classifier.gaussian_linear_IA_classifier as GLIA
 
 # -------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------- #
@@ -83,22 +83,22 @@ logger.info(f'dimensions:       {n_feat}')
 # -------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------- #
 
-# 2) Train a Bayesian classifier with LGIA PDF and save it to a pickle file
+# 2) Train a Bayesian classifier with GLIA PDF and save it to a pickle file
 
-# create LGIA clf object
-clf = LGIA.LGIA_clf()
+# create GLIA clf object
+clf = GLIA.GLIA_clf()
 
 # fit clf to training data
 clf.fit(X_train, y_train, IA_train)
 
 # make parameter dictionary from clf object
-LGIA_params_dict = LGIA.make_LGIA_params_dict_from_clf_object(clf)
+GLIA_params_dict = GLIA.make_GLIA_params_dict_from_clf_object(clf)
 
 # save parameter dictionary to disk
-pickle_file = 'LGIA_test_clf.pickle'
-LGIA.write_classifier_dict_2_pickle(pickle_file, LGIA_params_dict)
+pickle_file = 'GLIA_test_clf.pickle'
+GLIA.write_classifier_dict_2_pickle(pickle_file, GLIA_params_dict)
 
-logger.info(f'Trained a LGIA_clf and wrote parameter dictionary to disk.')
+logger.info(f'Trained a GLIA_clf and wrote parameter dictionary to disk.')
 logger.info(f'Class A mean: {A_mean}; clf.mu at IA={clf.IA_0}: {clf.mu[A_index-1,:]}')
 logger.info(f'Class B mean: {B_mean}; clf.mu at IA={clf.IA_0}: {clf.mu[B_index-1,:]}')
 logger.info(f'Class A slope: {A_slope}; clf.mu: {clf.b[A_index-1,:]}')
@@ -109,17 +109,17 @@ logger.info(f'Class B slope: {B_slope}; clf.mu: {clf.b[B_index-1,:]}')
 
 # 3) Load classifier from pickle file and use both classifiers to predict test labels
 
-# read LGIA_params_dict from pickle file and create new clf object
-LGIA_params_dict_1 = LGIA.read_classifier_dict_from_pickle(pickle_file)
-clf_1 = LGIA.make_LGIA_clf_object_from_params_dict(LGIA_params_dict_1)
+# read GLIA_params_dict from pickle file and create new clf object
+GLIA_params_dict_1 = GLIA.read_classifier_dict_from_pickle(pickle_file)
+clf_1 = GLIA.make_GLIA_clf_object_from_params_dict(GLIA_params_dict_1)
 
 # predict labels for test data
 y_pred, p = clf.predict(X_test, IA_test)
 y_pred_1, p_1 = clf_1.predict(X_test, IA_test)
 
 # get per-class accuracy
-CA = 100 * LGIA.get_per_class_score(y_pred, y_test, average=False)
-CA_1 = 100 * LGIA.get_per_class_score(y_pred_1, y_test, average=False)
+CA = 100 * GLIA.get_per_class_score(y_pred, y_test, average=False)
+CA_1 = 100 * GLIA.get_per_class_score(y_pred_1, y_test, average=False)
 
 precision = 3
 logger.info('Predicted test labels from both clf instances.')
@@ -131,10 +131,10 @@ logger.info(f'Reloaded clf: Class A={np.round(CA_1[0],precision)}, Class B={np.r
 
 # 4) Train a gaussian clf to demonstrate the advantage of including IA dependence
 
-clf_gaussian = LGIA.gaussian_clf()
+clf_gaussian = GLIA.gaussian_clf()
 clf_gaussian.fit(X_train, y_train)
 y_pred_gaussian, p_gaussian = clf_gaussian.predict(X_test)
-CA_gaussian = 100 * LGIA.get_per_class_score(y_pred_gaussian, y_test, average=False)
+CA_gaussian = 100 * GLIA.get_per_class_score(y_pred_gaussian, y_test, average=False)
 
 logger.info('Trained gaussian_clf without IA for comparison.')
 logger.info(f'Gaussian clf: Class A={np.round(CA_gaussian[0],precision)}, Class B={np.round(CA_gaussian[1],precision)}')
@@ -149,4 +149,4 @@ os.remove(pickle_file)
 # -------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------- #
 
-# ---- End of <test_LGIA_clf.py> ----
+# ---- End of <test_GLIA_clf.py> ----

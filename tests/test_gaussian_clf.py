@@ -6,7 +6,7 @@ from sklearn.model_selection import train_test_split
 import os
 from loguru import logger
 
-import LGIA_classifier.linear_gaussian_IA_classifier as LGIA
+import GLIA_classifier.gaussian_linear_IA_classifier as GLIA
 
 # -------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------- #
@@ -56,17 +56,17 @@ logger.info(f'dimensions:       {n_feat}')
 # 2) Train a Bayesian classifier with Gaussian PDF and save it to a pickle file
 
 # create Gaussian clf object
-clf = LGIA.gaussian_clf()
+clf = GLIA.gaussian_clf()
 
 # fit clf to training data
 clf.fit(X_train, y_train)
 
 # make parameter dictionary from clf object
-gaussian_params_dict = LGIA.make_gaussian_params_dict_from_clf_object(clf)
+gaussian_params_dict = GLIA.make_gaussian_params_dict_from_clf_object(clf)
 
 # save parameter dictionary to disk
 pickle_file = 'gaussian_test_clf.pickle'
-LGIA.write_classifier_dict_2_pickle(pickle_file, gaussian_params_dict)
+GLIA.write_classifier_dict_2_pickle(pickle_file, gaussian_params_dict)
 
 logger.info(f'Trained a gaussian_clf and wrote parameter dictionary to disk.')
 logger.info(f'Class A mean: {A_mean}; clf.mu: {clf.mu[A_index-1,:]}')
@@ -78,16 +78,16 @@ logger.info(f'Class B mean: {B_mean}; clf.mu: {clf.mu[B_index-1,:]}')
 # 3) Load classifier from pickle file and use both classifiers to predict test labels
 
 # read gaussian_params_dict from pickle file and create new clf object
-gaussian_params_dict_1 = LGIA.read_classifier_dict_from_pickle(pickle_file)
-clf_1 = LGIA.make_gaussian_clf_object_from_params_dict(gaussian_params_dict_1)
+gaussian_params_dict_1 = GLIA.read_classifier_dict_from_pickle(pickle_file)
+clf_1 = GLIA.make_gaussian_clf_object_from_params_dict(gaussian_params_dict_1)
 
 # predict labels for test data
 y_pred, p = clf.predict(X_test)
 y_pred_1, p_1 = clf_1.predict(X_test)
 
 # get per-class accuracy
-CA = 100 * LGIA.get_per_class_score(y_pred, y_test, average=False)
-CA_1 = 100 * LGIA.get_per_class_score(y_pred_1, y_test, average=False)
+CA = 100 * GLIA.get_per_class_score(y_pred, y_test, average=False)
+CA_1 = 100 * GLIA.get_per_class_score(y_pred_1, y_test, average=False)
 
 precision = 7
 logger.info('Predicted test labels from both clf instances.')

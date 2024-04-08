@@ -3,7 +3,7 @@
 
 Implementation of different supervised multi-dimensional Bayesian classifiers:
     -> gaussian_clf: Gaussian PDF with mean vector and covariance matrix per-class
-    -> LGIA_clf: Gausian PDF with linearly variable mean vector (slope and intercept) and constant covariance matrix.
+    -> GLIA_clf: Gausian PDF with linearly variable mean vector (slope and intercept) and constant covariance matrix.
 """
 
 from loguru import logger
@@ -415,7 +415,7 @@ def read_classifier_dict_from_pickle(input_file):
 # -------------------------------------------------------------------------- #
 
 def make_GLIA_clf_object_from_params_dict(GLIA_params_dict):
-    """Make an LGIA_classifier object from parameters in input dict
+    """Make an GLIA_classifier object from parameters in input dict
 
     Parameters
     ----------
@@ -453,7 +453,7 @@ def make_GLIA_clf_object_from_params_dict(GLIA_params_dict):
 # -------------------------------------------------------------------------- #
 
 def make_GLIA_params_dict_from_clf_object(clf):
-    """Make an GLIA_params dict from a LGIA_classifier object
+    """Make an GLIA_params dict from a GLIA_classifier object
 
     Parameters
     ----------
