@@ -6,7 +6,7 @@ def read(fname):
         return f.read()
 
 setup(
-    name = "LGIA_classifier",
+    name = "GLIA_classifier",
     version = "0.0.1",
     author = "Johannes Lohse",
     author_email = "johannes.lohse@uit.no",
