@@ -1,6 +1,6 @@
 # Supervised classification with Gaussian Linear Incidence Angle (GLIA) classifier
 
-This library provides code for supervised classification of SAR imagery using the LGIA classifier, which accounts for linear per-class variation of backscatter intensity with incident angle. The concept was initially developed for sea ice classification in Sentinel-1 EW data but can be transferred to other sensors and applications. Further explanation and theoretical background of classifer is given in:
+This library provides code for supervised classification of SAR imagery using the GLIA classifier, which accounts for linear per-class variation of backscatter intensity with incident angle. The concept was initially developed for sea ice classification in Sentinel-1 EW data but can be transferred to other sensors, imaging modes, and applications. Further explanation and theoretical background of classifer is given in:
 - [Lohse et al (2020)]
 - [Lohse et al (2021)]
 
@@ -18,7 +18,8 @@ It is recommended to run the code in a virtual environment.
     conda activate GLIA
     
     # install required packages
-    conda install -y ipython scipy loguru scikit-learn
+    conda install -y scipy loguru scikit-learn
+    pip install ipython
 
 
 ### Installation

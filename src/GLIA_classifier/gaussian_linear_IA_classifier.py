@@ -6,8 +6,11 @@ Implementation of different supervised multi-dimensional Bayesian classifiers:
     -> GLIA_clf: Gausian PDF with linearly variable mean vector (slope and intercept) and constant covariance matrix.
 """
 
-from loguru import logger
+import sys
+import pathlib
 import pickle
+
+from loguru import logger
 
 import numpy as np
 
@@ -540,5 +543,120 @@ def make_gaussian_clf_object_from_params_dict(gaussian_params_dict):
 
 # -------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------- #
+
+
+def inspect_classifier_pickle_file(clf_pickle_file, loglevel='INFO'):
+    """Retrieve information about a classifier stored in a pickle file
+
+    Parameters
+    ----------
+    clf_pickle_file : path to pickle file with classifier dict
+    loglevel : loglevel setting (default='INFO')
+    """
+
+    # remove default logger handler and add personal one
+    logger.remove()
+    logger.add(sys.stderr, level=loglevel)
+
+    logger.info('Inspecting classifier pickle file')
+
+# -------------------------------------------------------------------------- #
+
+    # convert folder strings to paths
+    clf_pickle_path = pathlib.Path(clf_pickle_file).resolve()
+
+    logger.debug(f'clf_pickle_path: {clf_pickle_path}')
+
+    if not clf_pickle_path.is_file():
+        logger.error(f'Cannot find clf_pickle_path: {clf_pickle_path}')
+        return
+
+# -------------------------------------------------------------------------- #
+
+    # load classifier dictionary
+    clf_dict = read_classifier_dict_from_pickle(clf_pickle_path.as_posix())
+
+    # check that pickle file contains a dictionary
+    if type(clf_dict) is not dict:
+        logger.error(f'Expected a classifier dictionary, but type is {type(clf_dict)}')
+        return
+
+    logger.debug('pickle file contains a classifier dictionary')
+    logger.debug(f'dict keys are: {list(clf_dict.keys())}')
+
+    if not 'type' in clf_dict.keys():
+        logger.error(f'clf_dict does not contain `type` key')
+        raise KeyError(f'clf_dict does not contain `type` key')
+
+    if not 'required_features' in clf_dict.keys():
+        logger.error(f'clf_dict does not contain `required_features` key')
+        raise KeyError(f'clf_dict does not contain `required_features` key')
+
+    if not 'label_value_mapping' in clf_dict.keys():
+        logger.error(f'clf_dict does not contain `label_value_mapping` key')
+        raise KeyError(f'clf_dict does not contain `label_value_mapping` key')
+
+    if not 'trained_classes' in clf_dict.keys():
+        logger.error(f'clf_dict does not contain `trained_classes` key')
+        raise KeyError(f'clf_dict does not contain `trained_classes` key')
+
+    if not 'invalid_swaths' in clf_dict.keys():
+        logger.error(f'clf_dict does not contain `invalid_swaths` key')
+        raise KeyError(f'clf_dict does not contain `invalid_swaths` key')
+
+    if not 'info' in clf_dict.keys():
+        logger.error(f'clf_dict does not contain `info` key')
+        raise KeyError(f'clf_dict does not contain `info` key')
+
+# -------------------------------------------------------------------------- #
+
+    # a "gaussian_IA" type classifier must have a "gaussian_IA_params" key
+    # values in this key are used to build the classifier object when needed
+    # this circumvents issues with changes in the gaussin_IA_classifier module
+
+    if clf_dict['type'] == 'gaussian_IA':
+        if not 'gaussian_IA_params' in clf_dict.keys():
+            logger.error(f'clf_dict does not contain `gaussian_IA_params` key')
+            raise KeyError(f'clf_dict does not contain `gaussian_IA_params` key')
+      
+
+    # extract information for inspection output
+    classifier_type     = clf_dict['type']
+    features            = clf_dict['required_features']
+    label_value_mapping = clf_dict['label_value_mapping']
+    trained_classes     = clf_dict['trained_classes']
+    invalid_swaths      = clf_dict['invalid_swaths']
+    info                = clf_dict['info']
+
+
+    print(f'\n=== CLASSIFIER ===')
+    print(clf_pickle_path)
+
+    print('\n=== CLASSIFIER TYPE: ===')
+    print(classifier_type)
+
+    print('\n=== REQUIRED FEATURES: ===')
+    for idx, feature_name in enumerate(features):
+        print(f'{idx:2d} -- {feature_name}')
+
+    print('\n=== LABEL VALUE MAPPING: ===')
+    for idx, key in enumerate(label_value_mapping):
+        print(f'{key} -- {label_value_mapping[key]}')
+
+    print('\n=== TRAINED CLASSES: ===')
+    print(f'{trained_classes}')
+
+    print('\n=== INVALID SWATHS: ===')
+    print(f'{invalid_swaths}')
+
+    if 'texture_settings' in clf_dict.keys():
+        print('\n=== TEXTURE PARAMETER SETTINGS: ===')
+        for idx, key in enumerate(clf_dict['texture_settings']):
+            print(f'{key}: {clf_dict["texture_settings"][key]}')
+
+    print('\n=== INFO: ===')
+    print(f'{info}')
+
+
 
 # ---- End of <gaussian_linear_IA_classifier.py> ----
