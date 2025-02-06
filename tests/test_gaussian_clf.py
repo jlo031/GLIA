@@ -62,11 +62,11 @@ clf = GLIA.gaussian_clf()
 clf.fit(X_train, y_train)
 
 # make parameter dictionary from clf object
-gaussian_params_dict = GLIA.make_gaussian_params_dict_from_clf_object(clf)
+clf_params_dict = GLIA.make_clf_params_dict_from_gaussian_clf_object(clf)
 
 # save parameter dictionary to disk
 pickle_file = 'gaussian_test_clf.pickle'
-GLIA.write_classifier_dict_2_pickle(pickle_file, gaussian_params_dict)
+GLIA.write_classifier_dict_2_pickle(pickle_file, clf_params_dict)
 
 logger.info(f'Trained a gaussian_clf and wrote parameter dictionary to disk.')
 logger.info(f'Class A mean: {A_mean}; clf.mu: {clf.mu[A_index-1,:]}')
@@ -78,8 +78,8 @@ logger.info(f'Class B mean: {B_mean}; clf.mu: {clf.mu[B_index-1,:]}')
 # 3) Load classifier from pickle file and use both classifiers to predict test labels
 
 # read gaussian_params_dict from pickle file and create new clf object
-gaussian_params_dict_1 = GLIA.read_classifier_dict_from_pickle(pickle_file)
-clf_1 = GLIA.make_gaussian_clf_object_from_params_dict(gaussian_params_dict_1)
+clf_params_dict_1 = GLIA.read_classifier_dict_from_pickle(pickle_file)
+clf_1 = GLIA.make_gaussian_clf_object_from_params_dict(clf_params_dict_1)
 
 # predict labels for test data
 y_pred, p = clf.predict(X_test)
@@ -89,7 +89,7 @@ y_pred_1, p_1 = clf_1.predict(X_test)
 CA = 100 * GLIA.get_per_class_score(y_pred, y_test, average=False)
 CA_1 = 100 * GLIA.get_per_class_score(y_pred_1, y_test, average=False)
 
-precision = 7
+precision = 2
 logger.info('Predicted test labels from both clf instances.')
 logger.info(f'Original clf: Class A={np.round(CA[0],precision)}, Class B={np.round(CA[1],precision)}')
 logger.info(f'Reloaded clf: Class A={np.round(CA_1[0],precision)}, Class B={np.round(CA_1[1],precision)}')

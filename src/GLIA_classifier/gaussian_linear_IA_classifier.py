@@ -23,23 +23,24 @@ from sklearn.linear_model import LinearRegression
 class GLIA_clf:
 
     def __init__(self, IA_0=30, override_slopes=False):
-        self.info = dict()
-        self.info['type'] = 'GLIA'
-        self.IA_0         = IA_0
+        self.params_dict = dict()
+        self.clf_type    = 'GLIA'
+        self.IA_0        = IA_0
 
 # ---------------- #
 
-    def add_info(self, info_dict):
-        """Add info_dict to classifier object info
+    def add_info(self, new_params_dict):
+        """Add params_dict to classifier object
 
         Parameters
         ----------
-        info_dict: dictionary to update classifier information
+        new_params_dict: dictionary to update classifier information
         """
 
-        self.info.update(info_dict)
+        self.params_dict.update(new_params_dict)
 
         return
+
 
 # ---------------- #
 
@@ -218,20 +219,20 @@ class GLIA_clf:
 class gaussian_clf:
 
     def __init__(self):
-        self.info = dict()
-        self.info['type'] = 'gaussian'
+        self.params_dict = dict()
+        self.clf_type = 'gaussian'
 
 # ---------------- #
 
-    def add_info(self, info_dict):
-        """Add info_dict to classifier object info
+    def add_info(self, new_params_dict):
+        """Add params_dict to classifier object
 
         Parameters
         ----------
-        info_dict: dictionary to update classifier information
+        new_params_dict: dictionary to update classifier information
         """
 
-        self.info.update(info_dict)
+        self.params_dict.update(new_params_dict)
 
         return
 
@@ -347,36 +348,7 @@ class gaussian_clf:
 
 # -------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------- #
-
-def get_per_class_score(y_true, y_pred, average=True, subsample=1):
-    """Calculate (average) per class classification accuracy
-
-    Parameters
-    ----------
-    y_true : True class labels [N,]
-    y_pred : Predicted class labels [N]
-    average : True/False for average or individual per-class CA (default True)
-    subsample : Subsample labels (default=1)
-
-    Returns
-    -------
-    CA: Classification accuracy (per class or average per class)
-    """
-
-    # convert labels to array
-    y_true = np.array(y_true)[::subsample]
-    y_pred = np.array(y_pred)[::subsample]
-
-    assert y_true.shape == y_pred.shape , 'true labels and predicted labels must have the same shape.'
-
-    classes = set(y_true)
-    CA = np.array(list(np.equal(y_true[y_true==label], y_pred[y_true==label]).sum() / float(sum(y_true==label)) for label in classes))
-
-    if average:
-        CA = np.mean(CA)
-
-    return CA
-
+# -------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------- #
 
@@ -417,41 +389,103 @@ def read_classifier_dict_from_pickle(input_file):
         classifier_dict = pickle.load(f)
 
     if type(classifier_dict) is not dict:
-        logger.error('The pickle file must contain a dictionary with clf parameters.')
+        logger.error(f'The pickle file must contain a dictionary with clf parameters, but data type was {type(classifier_dict)}.')
         return        
 
     return classifier_dict
 
 # -------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------- #
+# -------------------------------------------------------------------------- #
+# -------------------------------------------------------------------------- #
+# -------------------------------------------------------------------------- #
 
-def make_GLIA_clf_object_from_params_dict(GLIA_params_dict):
-    """Make an GLIA_classifier object from parameters in input dict
+def make_clf_params_dict_from_GLIA_clf_object(clf):
+    """Create clf_params_dict a from GLIA_clf object
 
     Parameters
     ----------
-    GLIA_params_dict : dictionary with with classifier parameters
+    clf : GLIA_clf classifier object
+
+    Returns
+    -------
+    clf_params_dict : dictionary with with classifier parameters
+     """
+
+    # initialize dict for clf parameters
+    clf_params_dict = dict()
+
+    # fill in dict with clf parameters
+    clf_params_dict['a']               = clf.a
+    clf_params_dict['b']               = clf.b
+    clf_params_dict['mu']              = clf.mu
+    clf_params_dict['Sigma']           = clf.Sigma
+    clf_params_dict['IA_0']            = clf.IA_0
+    clf_params_dict['n_class']         = clf.n_class
+    clf_params_dict['n_feat']          = clf.n_feat
+    clf_params_dict['trained_classes'] = clf.trained_classes
+    clf_params_dict['type']            = clf.clf_type
+
+    return clf_params_dict
+
+# -------------------------------------------------------------------------- #
+# -------------------------------------------------------------------------- #
+
+def make_clf_params_dict_from_gaussian_clf_object(clf):
+    """Make a clf_params dict from a gaussian_clf object
+
+    Parameters
+    ----------
+    clf : gaussian_clf classifier object
+
+    Returns
+    -------
+    clf_params_dict : dictionary with with classifier parameters
+     """
+
+    # initialize dict for clf parameters
+    clf_params_dict = dict()
+
+    # fill in dict with clf parameters
+    clf_params_dict['mu']              = clf.mu
+    clf_params_dict['Sigma']           = clf.Sigma
+    clf_params_dict['n_class']         = clf.n_class
+    clf_params_dict['n_feat']          = clf.n_feat
+    clf_params_dict['trained_classes'] = clf.trained_classes
+    clf_params_dict['type']            = clf.clf_type
+
+    return clf_params_dict
+
+# -------------------------------------------------------------------------- #
+# -------------------------------------------------------------------------- #
+
+def make_GLIA_clf_object_from_params_dict(clf_params_dict):
+    """Create GLIA_clf object from parameters in input dict
+
+    Parameters
+    ----------
+    clf_params_dict : dictionary with with classifier parameters
 
     Returns
     -------
     clf : GLIA_clf classifier object
-
-    :param  gaussian_IA_params_dict: dictionary with with classifier parameters
-    :return clf: classifier object (gaussian_IA_clf)
-     """
+    """
 
     # initialize classifier object
     clf = GLIA_clf()
 
+    if clf_params_dict['type'] != clf.clf_type:
+        logger.error('clf parameter dict does not seem to match clf type')
+
     # set classifier parameters from input dict
-    clf.a               = GLIA_params_dict['a']
-    clf.b               = GLIA_params_dict['b']
-    clf.mu              = GLIA_params_dict['mu']
-    clf.Sigma           = GLIA_params_dict['Sigma']
-    clf.IA_0            = GLIA_params_dict['IA_0']
-    clf.n_class         = GLIA_params_dict['n_class']
-    clf.n_feat          = GLIA_params_dict['n_feat']
-    clf.trained_classes = GLIA_params_dict['trained_classes']
+    clf.a               = clf_params_dict['a']
+    clf.b               = clf_params_dict['b']
+    clf.mu              = clf_params_dict['mu']
+    clf.Sigma           = clf_params_dict['Sigma']
+    clf.IA_0            = clf_params_dict['IA_0']
+    clf.n_class         = clf_params_dict['n_class']
+    clf.n_feat          = clf_params_dict['n_feat']
+    clf.trained_classes = clf_params_dict['trained_classes']
 
     # define the multivariate_normal for each class
     clf.class_mvn = dict()
@@ -460,72 +494,17 @@ def make_GLIA_clf_object_from_params_dict(GLIA_params_dict):
 
     return clf
 
+
+
 # -------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------- #
 
-def make_GLIA_params_dict_from_clf_object(clf):
-    """Make an GLIA_params dict from a GLIA_classifier object
+def make_gaussian_clf_object_from_params_dict(clf_params_dict):
+    """Create gaussian_clf object from parameters in input dict
 
     Parameters
     ----------
-    clf : GLIA_clf classifier object
-
-    Returns
-    -------
-    GLIA_params_dict : dictionary with with classifier parameters
-     """
-
-    # initialize dict for clf parameters
-    GLIA_params_dict = dict()
-
-    # fill in dict with clf parameters
-    GLIA_params_dict['a']               = clf.a
-    GLIA_params_dict['b']               = clf.b
-    GLIA_params_dict['mu']              = clf.mu
-    GLIA_params_dict['Sigma']           = clf.Sigma
-    GLIA_params_dict['IA_0']            = clf.IA_0
-    GLIA_params_dict['n_class']         = clf.n_class
-    GLIA_params_dict['n_feat']          = clf.n_feat
-    GLIA_params_dict['trained_classes'] = clf.trained_classes
-
-    return GLIA_params_dict
-
-# -------------------------------------------------------------------------- #
-# -------------------------------------------------------------------------- #
-
-def make_gaussian_params_dict_from_clf_object(clf):
-    """Make a gaussian_params dict from a gaussian_classifier object
-
-    Parameters
-    ----------
-    clf : gaussian_clf classifier object
-
-    Returns
-    -------
-    gaussian_params_dict : dictionary with with classifier parameters
-     """
-
-    # initialize dict for clf parameters
-    gaussian_params_dict = dict()
-
-    # fill in dict with clf parameters
-    gaussian_params_dict['mu']              = clf.mu
-    gaussian_params_dict['Sigma']           = clf.Sigma
-    gaussian_params_dict['n_class']         = clf.n_class
-    gaussian_params_dict['n_feat']          = clf.n_feat
-    gaussian_params_dict['trained_classes'] = clf.trained_classes
-
-    return gaussian_params_dict
-
-# -------------------------------------------------------------------------- #
-# -------------------------------------------------------------------------- #
-
-def make_gaussian_clf_object_from_params_dict(gaussian_params_dict):
-    """Make a gaussian_classifier object from parameters in input dict
-
-    Parameters
-    ----------
-    gaussian_params_dict : dictionary with with classifier parameters
+    clf_params_dict : dictionary with with classifier parameters
 
     Returns
     -------
@@ -535,12 +514,15 @@ def make_gaussian_clf_object_from_params_dict(gaussian_params_dict):
     # initialize classifier object
     clf = gaussian_clf()
 
+    if clf_params_dict['type'] != clf.clf_type:
+        logger.error('clf parameter dict does not seem to match clf type')
+
     # set classifier parameters from input dict
-    clf.mu              = gaussian_params_dict['mu']
-    clf.Sigma           = gaussian_params_dict['Sigma']
-    clf.n_class         = gaussian_params_dict['n_class']
-    clf.n_feat          = gaussian_params_dict['n_feat']
-    clf.trained_classes = gaussian_params_dict['trained_classes']
+    clf.mu              = clf_params_dict['mu']
+    clf.Sigma           = clf_params_dict['Sigma']
+    clf.n_class         = clf_params_dict['n_class']
+    clf.n_feat          = clf_params_dict['n_feat']
+    clf.trained_classes = clf_params_dict['trained_classes']
 
     # define the multivariate_normal for each class
     clf.class_mvn = dict()
@@ -552,6 +534,54 @@ def make_gaussian_clf_object_from_params_dict(gaussian_params_dict):
 # -------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------- #
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# -------------------------------------------------------------------------- #
+# -------------------------------------------------------------------------- #
+# -------------------------------------------------------------------------- #
+# -------------------------------------------------------------------------- #
+# -------------------------------------------------------------------------- #
 
 def inspect_classifier_pickle_file(clf_pickle_file, loglevel='INFO'):
     """Retrieve information about a classifier stored in a pickle file
@@ -600,9 +630,9 @@ def inspect_classifier_pickle_file(clf_pickle_file, loglevel='INFO'):
         logger.error(f'clf_dict does not contain `required_features` key')
         raise KeyError(f'clf_dict does not contain `required_features` key')
 
-    if not 'label_value_mapping' in clf_dict.keys():
-        logger.error(f'clf_dict does not contain `label_value_mapping` key')
-        raise KeyError(f'clf_dict does not contain `label_value_mapping` key')
+    if not 'label_index_mapping' in clf_dict.keys():
+        logger.error(f'clf_dict does not contain `label_index_mapping` key')
+        raise KeyError(f'clf_dict does not contain `label_index_mapping` key')
 
     if not 'trained_classes' in clf_dict.keys():
         logger.error(f'clf_dict does not contain `trained_classes` key')
@@ -618,20 +648,19 @@ def inspect_classifier_pickle_file(clf_pickle_file, loglevel='INFO'):
 
 # -------------------------------------------------------------------------- #
 
-    # a "gaussian_IA" type classifier must have a "gaussian_IA_params" key
-    # values in this key are used to build the classifier object when needed
-    # this circumvents issues with changes in the gaussin_IA_classifier module
+    # a "GLIA" type classifier must have  "a", "b", "Sigma" keys
+    # values in this key are used to build the classifier object
+    # this circumvents issues with changes in the gaussin_linear_IA_classifier module
 
-    if clf_dict['type'] == 'gaussian_IA':
-        if not 'gaussian_IA_params' in clf_dict.keys():
-            logger.error(f'clf_dict does not contain `gaussian_IA_params` key')
-            raise KeyError(f'clf_dict does not contain `gaussian_IA_params` key')
+    if clf_dict['type'] == 'GLIA':
+        if not 'a' in clf_dict.keys() or not 'b' in clf_dict.keys() or not 'Sigma' in clf_dict.keys():
+            logger.error(f'clf type {clf_dict['type']} does not contain all required parameters')
       
 
     # extract information for inspection output
     classifier_type     = clf_dict['type']
     features            = clf_dict['required_features']
-    label_value_mapping = clf_dict['label_value_mapping']
+    label_index_mapping = clf_dict['label_index_mapping']
     trained_classes     = clf_dict['trained_classes']
     invalid_swaths      = clf_dict['invalid_swaths']
     info                = clf_dict['info']
@@ -647,9 +676,9 @@ def inspect_classifier_pickle_file(clf_pickle_file, loglevel='INFO'):
     for idx, feature_name in enumerate(features):
         print(f'{idx:2d} -- {feature_name}')
 
-    print('\n=== LABEL VALUE MAPPING: ===')
-    for idx, key in enumerate(label_value_mapping):
-        print(f'{key} -- {label_value_mapping[key]}')
+    print('\n=== LABEL INDEX MAPPING: ===')
+    for idx, key in enumerate(label_index_mapping):
+        print(f'{key} -- {label_index_mapping[key]}')
 
     print('\n=== TRAINED CLASSES: ===')
     print(f'{trained_classes}')
@@ -665,6 +694,45 @@ def inspect_classifier_pickle_file(clf_pickle_file, loglevel='INFO'):
     print('\n=== INFO: ===')
     print(f'{info}')
 
+# -------------------------------------------------------------------------- #
+# -------------------------------------------------------------------------- #
+# -------------------------------------------------------------------------- #
+# -------------------------------------------------------------------------- #
+# -------------------------------------------------------------------------- #
 
+def get_per_class_score(y_true, y_pred, average=True, subsample=1):
+    """Calculate (average) per class classification accuracy
+
+    Parameters
+    ----------
+    y_true : True class labels [N,]
+    y_pred : Predicted class labels [N]
+    average : True/False for average or individual per-class CA (default True)
+    subsample : Subsample labels (default=1)
+
+    Returns
+    -------
+    CA: Classification accuracy (per class or average per class)
+    """
+
+    # convert labels to array
+    y_true = np.array(y_true)[::subsample]
+    y_pred = np.array(y_pred)[::subsample]
+
+    assert y_true.shape == y_pred.shape , 'true labels and predicted labels must have the same shape.'
+
+    classes = set(y_true)
+    CA = np.array(list(np.equal(y_true[y_true==label], y_pred[y_true==label]).sum() / float(sum(y_true==label)) for label in classes))
+
+    if average:
+        CA = np.mean(CA)
+
+    return CA
+
+# -------------------------------------------------------------------------- #
+# -------------------------------------------------------------------------- #
+# -------------------------------------------------------------------------- #
+# -------------------------------------------------------------------------- #
+# -------------------------------------------------------------------------- #
 
 # ---- End of <gaussian_linear_IA_classifier.py> ----
