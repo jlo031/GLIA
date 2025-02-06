@@ -85,7 +85,25 @@ The Bayesian classifier with linear IA depencency of the Gaussian mean valuecan 
     y_pred, prob = clf.predict(X_test, IA_test)
 
 
+### Saving classifiers
 
+Classifier can be saved in any way that is convenient for you. However, the current implementation strongly encourages to save classifier parameters in the form of dictionaries and write these to pickle files.  
+The *gaussian_linear_IA_classifier.py* module provides routines to read and write these pickle files, convert the dictionaries to clf objects, or create a dictionary from an clf object. It also offers an easy routint for inspection of the pickle files.
+
+    # import module and define path to clf pickle file
+    import GLIA_classifier.gaussian_linear_IA_classifier as glia
+    clf_pickle_path = 'src/GLIA_classifier/clf_models/belgica_bank_ice_types_2022.pickle'
+
+    # inspect the pickle file
+    glia.inspect_classifier_pickle_file(clf_pickle_path)
+
+To use this classifier, load the dictionary and then create the the clf object like this:
+
+    # read dictionary into clf_params_dict
+    clf_params_dict = glia.read_classifier_dict_from_pickle(clf_pickle_path)
+
+    # create clf object from that dictionary
+    clf = glia.make_GLIA_clf_object_from_clf_params_dict(clf_params_dict)
 
 
 
