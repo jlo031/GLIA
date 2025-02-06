@@ -459,7 +459,7 @@ def make_clf_params_dict_from_gaussian_clf_object(clf):
 # -------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------- #
 
-def make_GLIA_clf_object_from_params_dict(clf_params_dict):
+def make_GLIA_clf_object_from_clf_params_dict(clf_params_dict):
     """Create GLIA_clf object from parameters in input dict
 
     Parameters
@@ -494,12 +494,10 @@ def make_GLIA_clf_object_from_params_dict(clf_params_dict):
 
     return clf
 
-
-
 # -------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------- #
 
-def make_gaussian_clf_object_from_params_dict(clf_params_dict):
+def make_gaussian_clf_object_from_clf_params_dict(clf_params_dict):
     """Create gaussian_clf object from parameters in input dict
 
     Parameters
