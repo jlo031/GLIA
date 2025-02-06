@@ -79,7 +79,7 @@ logger.info(f'Class B mean: {B_mean}; clf.mu: {clf.mu[B_index-1,:]}')
 
 # read gaussian_params_dict from pickle file and create new clf object
 clf_params_dict_1 = GLIA.read_classifier_dict_from_pickle(pickle_file)
-clf_1 = GLIA.make_gaussian_clf_object_from_params_dict(clf_params_dict_1)
+clf_1 = GLIA.make_gaussian_clf_object_from_clf_params_dict(clf_params_dict_1)
 
 # predict labels for test data
 y_pred, p = clf.predict(X_test)

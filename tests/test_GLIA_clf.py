@@ -111,7 +111,7 @@ logger.info(f'Class B slope: {B_slope}; clf.mu: {clf.b[B_index-1,:]}')
 
 # read GLIA_params_dict from pickle file and create new clf object
 clf_params_dict_1 = GLIA.read_classifier_dict_from_pickle(pickle_file)
-clf_1 = GLIA.make_GLIA_clf_object_from_params_dict(clf_params_dict_1)
+clf_1 = GLIA.make_GLIA_clf_object_from_clf_params_dict(clf_params_dict_1)
 
 # predict labels for test data
 y_pred, p = clf.predict(X_test, IA_test)
