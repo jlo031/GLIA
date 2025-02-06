@@ -389,6 +389,10 @@ def write_classifier_dict_2_pickle(output_file, classifier_dict):
     classifier_dict : classifier dictionary
     """
 
+    if type(classifier_dict) is not dict:
+        logger.error(f'Expected a classifier dictionary and got data type {type(classifier_dict)}.')
+        return
+
     with open(output_file, 'wb') as f: 
         pickle.dump(classifier_dict, f)
 
@@ -410,9 +414,13 @@ def read_classifier_dict_from_pickle(input_file):
     """
 
     with open(input_file, 'rb') as f: 
-        classifier_dictionary = pickle.load(f)
+        classifier_dict = pickle.load(f)
 
-    return classifier_dictionary
+    if type(classifier_dict) is not dict:
+        logger.error('The pickle file must contain a dictionary with clf parameters.')
+        return        
+
+    return classifier_dict
 
 # -------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------- #
