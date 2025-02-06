@@ -10,7 +10,7 @@ setup(
     version = "0.0.1",
     author = "Johannes Lohse",
     author_email = "johannes.lohse@uit.no",
-    description = ("linear Gaussian incidence angle classification."),
+    description = ("classification using Gaussian PDF with linear IA dependence."),
     license = "The Ask Johannes Before You Do Anything License",
     long_description=read('README.md'),
     install_requires = [
