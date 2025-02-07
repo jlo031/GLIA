@@ -17,7 +17,7 @@ import numpy as np
 
 from osgeo import gdal
 
-import ice_type_classification.gaussian_IA_classifier as gia
+import GLIA_classifier.gaussian_linear_IA_classifier as glia
 
 import ice_type_classification.uncertainty_utils as uncertainty_utils
 import ice_type_classification.classification_utils as classification_utils
@@ -26,13 +26,12 @@ import ice_type_classification.classification_utils as classification_utils
 # -------------------------------------------------------------------------- #
 
 def classify_image_from_feature_folder(
-    feat_folder,
+    feature_folder,
     result_folder,
     classifier_model_path,
+    valid_mask = True,
     uncertainties = False,
     uncertainty_params_dict = [],
-    valid_mask = False,
-    block_size = 1e6,
     overwrite = False,
     loglevel = 'INFO',
 ):
@@ -47,7 +46,6 @@ def classify_image_from_feature_folder(
     uncertainties : estimate apost and mahal uncertainties (default True)
     uncertainty_params_dict : dictionary with parameters for uncertainty estimation
     valid_mask : use valid mask
-    block_size : number of pixels for block-wise processing (default=1e6)
     overwrite : overwrite existing files (default=False)
     loglevel : loglevel setting (default='INFO')
     """
@@ -65,20 +63,19 @@ def classify_image_from_feature_folder(
     result_folder         = pathlib.Path(result_folder).resolve()
     classifier_model_path = pathlib.Path(classifier_model_path).resolve()
 
-    # convert block_size string to integer
-    block_size = int(block_size)
-
     logger.debug(f'feat_folder: {feat_folder}')
     logger.debug(f'result_folder: {result_folder}')
     logger.debug(f'classifier_model_path: {classifier_model_path}')
 
     if not feat_folder.is_dir():
         logger.error(f'Cannot find feat_folder: {feat_folder}')
-        raise NotADirectoryError(f'Cannot find feat_folder: {feat_folder}')
+        return
 
     if not classifier_model_path.is_file():
         logger.error(f'Cannot find classifier_model_path: {classifier_model_path}')
-        raise FileNotFoundError(f'Cannot find classifier_model_path: {classifier_model_path}')
+        return
+
+# -------------------------------------------------------------------------- #
 
     # get input basename from feat_folder
     f_base = feat_folder.stem
@@ -86,86 +83,98 @@ def classify_image_from_feature_folder(
     logger.debug(f'f_base: {f_base}')
 
     # define output file names and paths
-    result_basename = f_base + '_labels'
-    result_path     = result_folder / f'{result_basename}.img'
-    result_path_hdr = result_folder / f'{result_basename}.hdr'
-    result_path_mahal     = result_folder / f'{f_base}_mahal_uncertainty.img'
-    result_path_mahal_hdr = result_folder / f'{f_base}_mahal_uncertainty.hdr'
-    result_path_apost     = result_folder / f'{f_base}_apost_uncertainty.img'
-    result_path_apost_hdr = result_folder / f'{f_base}_apost_uncertainty.hdr'
+    result_labels_path      = result_folder / f'{f_base}_labels.img'
+    result_labels_path_hdr  = result_folder / f'{f_base}_labels.hdr'
+    result_mahal_path       = result_folder / f'{f_base}_mahal_uncertainty.img'
+    result_mahal_path_hdr   = result_folder / f'{f_base}_mahal_uncertainty.hdr'
+    result_apost_path       = result_folder / f'{f_base}_apost_uncertainty.img'
+    result_apost_path_hdr   = result_folder / f'{f_base}_apost_uncertainty.hdr'
 
-    logger.debug(f'result_path:       {result_path}')
-    logger.debug(f'result_path_mahal: {result_path_mahal}')
-    logger.debug(f'result_path_apost: {result_path_apost}')
+    logger.debug(f'result_labels_path: {result_labels_path}')
+    logger.debug(f'result_mahal_path:  {result_mahal_path}')
+    logger.debug(f'result_apost_path:  {result_apost_path}')
 
     # check if main outfile already exists
-    if result_path.is_file() and not overwrite:
+    if result_labels_path.is_file() and not overwrite:
         logger.info('Output files already exist, use `-overwrite` to force')
         return
-    elif result_path.is_file() and overwrite:
+    elif result_labels_path.is_file() and overwrite:
         logger.info('Removing existing output file and classifying again')
-        result_path.unlink()
-        result_path_hdr.unlink()
-        result_path_mahal.unlink(missing_ok=True)
-        result_path_mahal_hdr.unlink(missing_ok=True)
-        result_path_apost.unlink(missing_ok=True)
-        result_path_apost_hdr.unlink(missing_ok=True)
+        result_labels_path.unlink()
+        result_labels_path_hdr.unlink()
+        result_mahal_path.unlink(missing_ok=True)
+        result_mahal_path_hdr.unlink(missing_ok=True)
+        result_apost_path.unlink(missing_ok=True)
+        result_apost_path_hdr.unlink(missing_ok=True)
 
 # -------------------------------------------------------------------------- #
 
     # GET BASIC CLASSIFIER INFO
 
     # load classifier dictionary
-    classifier_dict = gia.read_classifier_dict_from_pickle(classifier_model_path.as_posix())
+    clf_params_dict = glia.read_classifier_dict_from_pickle(classifier_model_path.as_posix())
 
-    if not 'type' in classifier_dict.keys():
-        logger.error(f'classifier_dict does not contain `type` key')
-        raise KeyError(f'classifier_dict does not contain `type` key')
+    # check that it is a valid classifier dict with all required information
+    valid_clf_params_dict = glia.check_clf_dict(clf_params_dict)
 
-    if not 'required_features' in classifier_dict.keys():
-        logger.error(f'classifier_dict does not contain `required_features` key')
-        raise KeyError(f'classifier_dict does not contain `required_features` key')
+    if not valid_clf_params_dict:
+        logger.error(f'Invalid clf_params_dict')
+        return
+
+    """
+    move this into check_clf_dict function in glia module
+
+check_clf_dict(clf_dict):
+
+    keys = clf_dict.keys()
+
+    good_clf_dict = Trus
+
+    if not 'type' in keys:
+        logger.error(f'clf_dict does not contain `type` key')
+        good_clf_dict = False
+
+    if not 'required_features' in keys:
+        logger.error(f'clf_dict does not contain `required_features` key')
+        good_clf_dict = Fals
+
+    if clf_dict['type'] == 'gaussian':
+        if not 'mu' in keys or not 'Sigma' in keys():
+            logger.error(f'clf_dict of type gaussian does not contain all Gaussian parameters')
+            good_clf_dict = False
+    elif clf_dict['type'] == 'GLIA':
+        if not 'a' in keys or not 'b' in keys() or not 'mu' in keys or not 'Sigma' in keys or not 'IA_0' in keys():
+            logger.error(f'clf_dict of type GLIA does not contain all GLIA parameters')
+            good_clf_dict = False
+    """
 
     # get clf_type
-    clf_type = classifier_dict['type']
+    clf_type = clf_params_dict['type']
 
-    # get list of required features for classifier
-    required_features = sorted(classifier_dict['required_features'])
+    # get list of required features
+    required_features = sorted(clf_params_dict['required_features'])
 
     logger.info(f'clf_type: {clf_type}')
     logger.info(f'required_features: {required_features}')
 
 # ---------------------------------- #
 
-    # BUILD CLASSIFIER OBJECT ACCORDING TO CLASSIFIER DICT
+    # build clf object
 
-    # check classifier type
-    # for gaussian or gaussian_IA:
-    #     - build the actual clf object from the saved parameters
-    # for other types:
-    #      - set the clf object directly from classifier_dict
-    #      - import the necessary modules from sklearn
-
-    if clf_type == 'gaussian_IA':
-        logger.debug(f'clf_type: {clf_type}')
-        logger.debug('classifier_dict should only contain clf parameters')
-        logger.debug('building classifier object from these parameters')
-        clf = gia.make_gaussian_IA_clf_object_from_params_dict(classifier_dict['gaussian_IA_params'])
+    if clf_type == 'GLIA':
+        clf = glia.make_GLIA_clf_object_from_clf_params_dict(clf_params_dict)
 
     elif clf_type =='gaussian':
-        logger.debug(f'clf_valid_mask_data_typetype: {clf_type}')
-        logger.debug('classifier_dict should only contain clf parameters')
-        logger.debug('building classifier object from these parameters')
-        clf = gia.make_gaussian_clf_object_from_params_dict(classifier_dict['gaussian_params'])
+        clf = gia.make_gaussian_clf_object_from_params_dict(clf_params_dict)
 
     else:
-        logger.error('This clf type is not implemented yet')
-        raise NotImplementedError('This clf type is not implemented yet')
+        logger.error('This clf type is not implemented in this library')
+        return
 
 # -------------------------------------------------------------------------- #
 
     # PREPARE UNCERTAINTY ESTIMATION
-
+    """
     if uncertainties:
         logger.info('Uncertainties is set to "True"')
 
@@ -222,34 +231,40 @@ def classify_image_from_feature_folder(
         else:
             logger.warning(f'Expected "uncertainty_dict" of type "dict", but found type "{type(uncertainty_dict)}"')
             logger.warning('Using default parameters for uncertainty estimation')
-
+    """
 # -------------------------------------------------------------------------- #
 
     # CHECK EXISTING AND REQUIRED FEATURES
+    # AND LOAD DATA
 
-    # get list of existing features in feat_folder
-    existing_features = sorted([f for f in os.listdir(feat_folder) if f.endswith('img')])
+    # get list of existing features
+    existing_features = sorted([f for f in os.listdir(feature_folder) if f.endswith('img') or f.endswith('tif') or f.endswith('tiff')])
 
-    # check that all required_features exist
+    # features will be read into a dictionary
+    feature_dict = dict()
+
+    # loop through required features, check, and load
     for f in required_features:
-        if f'{f}.img' not in existing_features:
-            logger.error(f'Cannot find required feature: {f}')
-            raise FileNotFoundError(f'Cannot find required feature: {f}')
+
+        feature_found = False
+
+        if f'{f}.img' in existing_features:
+            feature_found = True
+            feature_dict[f] = gdal.Open((feature_folder/f'{f}.img').as_posix()).ReadAsArray()
+         # check for tif/tiff and avoid doubles 
+
 
     # get Nx and Ny from first required feature
-    Nx, Ny = classification_utils.get_image_dimensions((feat_folder / f'{required_features[0]}.img').as_posix())
+    Ny, Nx = feature_dict[required_features[0]].shape
     shape  = (Ny, Nx)
     N      = Nx*Ny
-    logger.info(f'Image dimensions: Nx={Nx}, Ny={Ny}')
-    logger.info(f'Image shape: {shape}')
-    logger.info(f'Total number of pixels: {N}')
 
     # check that all required features have same dimensions
-    for f in required_features:
-        Nx_current, Ny_current = classification_utils.get_image_dimensions(  (feat_folder / f'{f}.img').as_posix() )
+    for key in feature_dict.keys():
+        Ny_current, Nx_current = feature_dict[key].shape
         if not Nx == Nx_current or not Ny == Ny_current:
             logger.error(f'Image dimensions of required features do not match')
-            raise ValueError(f'Image dimensions of required features do not match')
+            return
 
 # -------------------------------------------------------------------------- #
 
@@ -258,120 +273,37 @@ def classify_image_from_feature_folder(
     if valid_mask:
         logger.info('Using valid mask')
 
-        # check that valid.img exists
-        if 'valid.img' not in existing_features:
-            logger.error('Cannot find valid mask: valid.img')
-            logger.error('Unset `-valid_mask` flag, if you do not want to use a valid mask')
-            raise FileNotFoundError('Cannot find valid mask: valid.img')
 
-        else:
-            # check that valid_mask dimensions match feature dimensions
-            Nx_valid, Ny_valid = classification_utils.get_image_dimensions((feat_folder / 'valid.img').as_posix())
-            if not Nx == Nx_valid or not Ny == Ny_valid:
-                logger.error(f'valid_mask dimensions do not match featured imensions')
-                raise ValueError(f'valid_mask dimensions do not match featured imensions')
+        if 'valid.img' in existing_features:
+            valid_mask = gdal.Open((feature_folder/'valid.img').as_posix()).ReadAsArray()
+        # same clever way to check for tif/tiff
 
-            # get valid_mask data type
-            valid_data_type_in = gdal.Open((feat_folder / 'valid.img').as_posix(), gdal.GA_ReadOnly).GetRasterBand(1).DataType
-            logger.debug(f'valid_data_type_in: {valid_data_type_in}')
-            # set valid_mask_data_type for memory mapping
-            if valid_data_type_in == 1:
-                valid_mask_data_type = np.uint8
-            elif valid_data_type_in == 6:
-                valid_mask_data_type = np.float32
-            else:
-                logger.error('Unknown valid_mask data type')
-                logger.debug(f'valid_mask_data_type: {valid_mask_data_type}')
-
-    else:
-        logger.info('Not using valid mask, set `-valid_mask` if wanted')
+        # check that valid_mask dimensions match feature dimensions
+        if not valid_mask.shape[0]==Ny and valid_mask.shape[1]==Hx:
+            logger.error(f'valid_mask dimensions do not match featured imensions')
+            return
 
 # ---------------------------------- #
 
     # CHECK IA MASK
 
-    if clf_type == 'gaussian_IA':
+    if clf_type == 'GLIA':
         logger.info('Classifier requires IA information')
 
         # check that IA.img exists
-        if 'IA.img' not in existing_features:
-            logger.error(f'Cannot find IA image: IA.img')
-            raise FileNotFoundError(f'Cannot find IA image: IA.img')
+        if 'IA.img' in existing_features:
+            IA = gdal.Open((feature_folder/'IA.img').as_posix()).ReadAsArray()
+        # same checks as above
 
-        else:
-            # check that IA dimensions match feature dimensions
-            Nx_IA, Ny_IA = classification_utils.get_image_dimensions((feat_folder / 'IA.img').as_posix())
-            if not Nx == Nx_IA or not Ny == Ny_IA:
-                logger.error(f'IA dimensions do not match featured imensions')
-                raise ValueError(f'IA dimensions do not match featured imensions')
-
-    else:
-        logger.info('Classifier is not using IA information')
+        # check that IA dimensions match feature dimensions
+        if not IA.shape[0]==Ny and IA.shape[1]==Nx:
+            logger.error(f'IA dimensions do not match featured imensions')
+            return
 
 # -------------------------------------------------------------------------- #
 
-    # initialize data dict and/or data list
-    data_dict = dict()
-    data_list = []
-
-    # logger
-    logger.info('Memory mapping all required data')
-
-# --------------------- #
-
-    # memory map IA if required, set empty otherwise
-
-    if clf_type=='gaussian_IA':
-
-        logger.debug('Memory mapping IA')
-
-        # check of byteswap is needed
-        byteswap_needed = classification_utils.check_image_byte_order(feat_folder/f'IA.img')
-
-        if byteswap_needed:
-            IA_mask = np.memmap((feat_folder / 'IA.img').as_posix(), dtype=np.float32, mode='r', shape=(N)).byteswap()
-        elif not byteswap_needed:
-            IA_mask = np.memmap((feat_folder / 'IA.img').as_posix(), dtype=np.float32, mode='r', shape=(N))
-
-    else:
-        IA_mask = np.zeros(N).astype(int)
-
-# --------------------- #
-
-    # memory map valid mask if required, set empty otherwise
-
-    if valid_mask:
-
-        logger.debug('Memory mapping valid mask')
-
-        # check of byteswap is needed
-        byteswap_needed = classification_utils.check_image_byte_order(feat_folder/f'valid.img')
-
-        if byteswap_needed:
-            valid_mask = np.memmap((feat_folder / 'valid.img').as_posix(), dtype=valid_mask_data_type, mode='r', shape=(N)).byteswap()
-        elif not byteswap_needed:
-            valid_mask = np.memmap((feat_folder / 'valid.img').as_posix(), dtype=valid_mask_data_type, mode='r', shape=(N))
-
-    else:
-        logger.debug('Setting valid_mask to 1')
-        valid_mask = np.ones(N).astype(int)
-
-# --------------------- #
-
-    for f in required_features:
-
-        logger.debug(f'Memory mapping feature: {f}')
-
-        # check of byteswap is needed
-        byteswap_needed = classification_utils.check_image_byte_order(feat_folder/f'{f}.img')
-
-        if byteswap_needed:
-            data_dict[f] = np.memmap(f'{feat_folder.as_posix()}/{f}.img', dtype=np.float32, mode='r', shape=(N)).byteswap()
-        elif not byteswap_needed:
-            data_dict[f] = np.memmap(f'{feat_folder.as_posix()}/{f}.img', dtype=np.float32, mode='r', shape=(N))
- 
-# -------------------------------------------------------------------------- #
-
+    """
+    may not be needed without memory mapping
     # initialize labels and probabilities
     labels_img = np.zeros(N)
 
@@ -393,77 +325,63 @@ def classify_image_from_feature_folder(
     # for progress report at every 10%
     log_percs   = np.array([0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9])
     perc_blocks = np.ceil(np.array(n_blocks)*log_percs).astype(int)
+    """
+
+# -------------------------------------------------------------------------- #
+
+    labels = np.zeros(N)
+
+    if uncertainties:
+        mahal  = np.zeros((N,n_classes))
+        mahal.fill(np.nan)
+        probs  = np.zeros((N,n_classes))
+        probs.fill(np.nan)
+
+
+
+    # STACK FEATURES TO FEATURE, VALID, AND IA VECTORS
+
+    X
+    valid_vec
+    IA_vec
 
 # -------------------------------------------------------------------------- #
 
     # CLASSIFY
 
-    # loop over all blocks
-    for block in np.arange(n_blocks):
+    # predict labels where valid==1
+    if clf_type == 'gaussian_IA':
 
-        # logger
-        logger.debug(f'Processing block {block+1} of {n_blocks}')
+        if uncertainties:
+            labels[valid_vec==1], probs[valid_vec==1] = clf.predict(X_vec, IA_vec)
 
-        if block in perc_blocks:
-            logger.info(f'..... {int(log_percs[np.where(perc_blocks==block)[0][0]]*100)}%')
-
-        # get idx of current block
-        idx_start = block*block_size
-        idx_end   = (block+1)*block_size
-
-        # select IA and valid mask for current block
-        IA_block    = IA_mask[idx_start:idx_end]
-        valid_block = valid_mask[idx_start:idx_end]
-
-        # select all features for current block (make sure order is correct)
-        X_block_list = []    
-        for key in required_features:
-            X_block_list.append(data_dict[key][idx_start:idx_end])
-
-        # stack all selected features to array (N,n_feat)
-        X_block= np.stack(X_block_list,1)   
-
-        # select only valid part of block
-        X_block_valid  = X_block[valid_block==1]
-        IA_block_valid = IA_block[valid_block==1]
-
-
-        # predict labels where valid==1
-        if clf_type == 'gaussian_IA':
-
-
-            
-            if uncertainties:
-                labels_img[idx_start:idx_end][valid_block==1], probs_img[idx_start:idx_end][valid_block==1] = clf.predict(X_block_valid, IA_block_valid)
-
-                # for uncertainties
-                logger.debug('Estimating mahal_img for current block')
-                mahal_img[idx_start:idx_end][valid_block==1] = uncertainty_utils.get_mahalanobis_distance(X_block_valid, mu_vec_all_classes, cov_mat_all_classes, IA_test=IA_block_valid, IA_0=IA_0, IA_slope=IA_slope)
+            # for uncertainties
+            logger.debug('Estimating mahal_img for current block')
+            mahal[valid_vec] = uncertainty_utils.get_mahalanobis_distance(X, mu_vec_all_classes, cov_mat_all_classes, IA_test=IA_vec, IA_0=IA_0, IA_slope=IA_slope)
 	
-            else:
-                labels_img[idx_start:idx_end][valid_block==1], _ = clf.predict(X_block_valid, IA_block_valid)
+        else:
+            labels[valid_vec==1], _ = clf.predict(X, IA_vec)
 
 
+    elif clf_type == 'gaussian':
 
-        elif clf_type == 'gaussian':
+        if uncertainties:
+            labels[valid_vec==1],probs[valid_block==1] = clf.predict(X)
 
-            if uncertainties:
-                labels_img[idx_start:idx_end][valid_block==1],probs_img[idx_start:idx_end][valid_block==1] = clf.predict(X_block_valid)
-
-                # for uncertainties
-                logger.debug('Estimating mahal_img for current block')
-                mahal_img[idx_start:idx_end][valid_block==1] = uncertainty_utils.get_mahalanobis_distance(X_block_valid, mu_vec_all_classes, cov_mat_all_classes)
-
-            else:
-                labels_img[idx_start:idx_end][valid_block==1], _ = clf.predict(X_block_valid)
-
-
+            # for uncertainties
+            logger.debug('Estimating mahal for current block')
+            mahal_img[valid_vec==1] = uncertainty_utils.get_mahalanobis_distance(X, mu_vec_all_classes, cov_mat_all_classes)
 
         else:
-            logger.error('This clf type is not implemented yet')
+            labels[valid_block==1], _ = clf.predict(X)
 
-        # set labels to 0 where valid==0
-        labels_img[idx_start:idx_end][valid_block==0] = 0
+    else:
+        logger.error('This clf type is not implemented yet')
+
+
+
+    # set labels to 0 where valid==0
+    labels_img[idx_start:idx_end][valid_block==0] = 0
 
     logger.info('Finished classification')
 
