@@ -18,9 +18,7 @@ import numpy as np
 from osgeo import gdal
 
 import GLIA_classifier.gaussian_linear_IA_classifier as glia
-
-import ice_type_classification.uncertainty_utils as uncertainty_utils
-import ice_type_classification.classification_utils as classification_utils
+import GLIA_classifier.uncertainty_utils as glia_uncertainty_utils
 
 # -------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------- #
@@ -115,12 +113,11 @@ def classify_image_from_feature_folder(
     clf_params_dict = glia.read_classifier_dict_from_pickle(classifier_model_path.as_posix())
 
     # check that it is a valid classifier dict with all required information
-    valid_clf_params_dict = glia.check_clf_dict(clf_params_dict)
+    valid_clf_params_dict = glia.check_clf_params_dict(clf_params_dict)
 
     if not valid_clf_params_dict:
         logger.error(f'Invalid clf_params_dict')
         return
-
 
     # get clf_type
     clf_type = clf_params_dict['type']
@@ -415,128 +412,6 @@ def classify_image_from_feature_folder(
             output_apost.FlushCache()
 
     logger.info(f'Result writtten to {result_path}')
-
-# -------------------------------------------------------------------------- #
-# -------------------------------------------------------------------------- #
-# -------------------------------------------------------------------------- #
-# -------------------------------------------------------------------------- #
-# -------------------------------------------------------------------------- #
-
-def inspect_classifier_pickle(
-    classifier_model_path,
-    loglevel='INFO',
-):
-
-    """Retrieve information about a classifier stored in a pickle file
-
-    Parameters
-    ----------
-    classifier_mode_path : path to pickle file with classifier dict
-    loglevel : loglevel setting (default='INFO')
-    """
-
-    # remove default logger handler and add personal one
-    logger.remove()
-    logger.add(sys.stderr, level=loglevel)
-
-    logger.info('Inspecting classifier pickle file')
-
-# -------------------------------------------------------------------------- #
-
-    # convert folder strings to paths
-    classifier_model_path = pathlib.Path(classifier_model_path).resolve()
-
-    logger.debug(f'classifier_model_path: {classifier_model_path}')
-
-    if not classifier_model_path.is_file():
-        logger.error(f'Cannot find classifier_model_path: {classifier_model_path}')
-        raise FileNotFoundError(f'Cannot find classifier_model_path: {classifier_model_path}')
-
-# -------------------------------------------------------------------------- #
-
-    # load classifier dictionary
-    classifier_dict = gia.read_classifier_dict_from_pickle(classifier_model_path.as_posix())
-
-    # check that pickle file contains a dictionary
-    if type(classifier_dict) is not dict:
-        logger.error(f'Expected a classifier dictionary, but type is {type(classifier_dict)}')
-        raise TypeError(f'Expected a classifier dictionary, but type is {type(classifier_dict)}')
-
-    logger.debug('pickle file contains a classifier dictionary')
-    logger.debug(f'dict keys are: {list(classifier_dict.keys())}')
-
-    if not 'type' in classifier_dict.keys():
-        logger.error(f'classifier_dict does not contain `type` key')
-        raise KeyError(f'classifier_dict does not contain `type` key')
-
-    if not 'required_features' in classifier_dict.keys():
-        logger.error(f'classifier_dict does not contain `required_features` key')
-        raise KeyError(f'classifier_dict does not contain `required_features` key')
-
-    if not 'label_value_mapping' in classifier_dict.keys():
-        logger.error(f'classifier_dict does not contain `label_value_mapping` key')
-        raise KeyError(f'classifier_dict does not contain `label_value_mapping` key')
-
-    if not 'trained_classes' in classifier_dict.keys():
-        logger.error(f'classifier_dict does not contain `trained_classes` key')
-        raise KeyError(f'classifier_dict does not contain `trained_classes` key')
-
-    if not 'invalid_swaths' in classifier_dict.keys():
-        logger.error(f'classifier_dict does not contain `invalid_swaths` key')
-        raise KeyError(f'classifier_dict does not contain `invalid_swaths` key')
-
-    if not 'info' in classifier_dict.keys():
-        logger.error(f'classifier_dict does not contain `info` key')
-        raise KeyError(f'classifier_dict does not contain `info` key')
-
-# -------------------------------------------------------------------------- #
-
-    # a "gaussian_IA" type classifier must have a "gaussian_IA_params" key
-    # values in this key are used to build the classifier object when needed
-    # this circumvents issues with changes in the gaussin_IA_classifier module
-
-    if classifier_dict['type'] == 'gaussian_IA':
-        if not 'gaussian_IA_params' in classifier_dict.keys():
-            logger.error(f'classifier_dict does not contain `gaussian_IA_params` key')
-            raise KeyError(f'classifier_dict does not contain `gaussian_IA_params` key')
-      
-
-    # extract information for inspection output
-    classifier_type     = classifier_dict['type']
-    features            = classifier_dict['required_features']
-    label_value_mapping = classifier_dict['label_value_mapping']
-    trained_classes     = classifier_dict['trained_classes']
-    invalid_swaths      = classifier_dict['invalid_swaths']
-    info                = classifier_dict['info']
-
-
-    print(f'\n=== CLASSIFIER ===')
-    print(classifier_model_path)
-
-    print('\n=== CLASSIFIER TYPE: ===')
-    print(classifier_type)
-
-    print('\n=== REQUIRED FEATURES: ===')
-    for idx, feature_name in enumerate(features):
-        print(f'{idx:2d} -- {feature_name}')
-
-    print('\n=== LABEL VALUE MAPPING: ===')
-    for idx, key in enumerate(label_value_mapping):
-        print(f'{key} -- {label_value_mapping[key]}')
-
-    print('\n=== TRAINED CLASSES: ===')
-    print(f'{trained_classes}')
-
-    print('\n=== INVALID SWATHS: ===')
-    print(f'{invalid_swaths}')
-
-    if 'texture_settings' in classifier_dict.keys():
-        print('\n=== TEXTURE PARAMETER SETTINGS: ===')
-        for idx, key in enumerate(classifier_dict['texture_settings']):
-            print(f'{key}: {classifier_dict["texture_settings"][key]}')
-
-    print('\n=== INFO: ===')
-    print(f'{info}')
 
 # -------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------- #
