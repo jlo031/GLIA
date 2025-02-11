@@ -121,32 +121,6 @@ def classify_image_from_feature_folder(
         logger.error(f'Invalid clf_params_dict')
         return
 
-    """
-    move this into check_clf_dict function in glia module
-
-check_clf_dict(clf_dict):
-
-    keys = clf_dict.keys()
-
-    good_clf_dict = Trus
-
-    if not 'type' in keys:
-        logger.error(f'clf_dict does not contain `type` key')
-        good_clf_dict = False
-
-    if not 'required_features' in keys:
-        logger.error(f'clf_dict does not contain `required_features` key')
-        good_clf_dict = Fals
-
-    if clf_dict['type'] == 'gaussian':
-        if not 'mu' in keys or not 'Sigma' in keys():
-            logger.error(f'clf_dict of type gaussian does not contain all Gaussian parameters')
-            good_clf_dict = False
-    elif clf_dict['type'] == 'GLIA':
-        if not 'a' in keys or not 'b' in keys() or not 'mu' in keys or not 'Sigma' in keys or not 'IA_0' in keys():
-            logger.error(f'clf_dict of type GLIA does not contain all GLIA parameters')
-            good_clf_dict = False
-    """
 
     # get clf_type
     clf_type = clf_params_dict['type']

@@ -531,49 +531,84 @@ def make_gaussian_clf_object_from_clf_params_dict(clf_params_dict):
 
 # -------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------- #
+# -------------------------------------------------------------------------- #
+# -------------------------------------------------------------------------- #
+# -------------------------------------------------------------------------- #
 
+def check_clf_params_dict(clf_params_dict, check_optional_keys=False, loglevel='INFO'):
+    """Check that input clf_params_dict contains necessary parameters for clf type
 
+    Parameters
+    ----------
+    clf_params_dict : dictionary with with classifier parameters
+    check_optional_keys : also check optional keys that are not mandatory to build clf object (default=False)
+    loglevel : loglevel setting (default='INFO')
 
+    Returns
+    -------
+    valid_clf_params:dict : True/False 
 
+    """
 
+    # remove default logger handler and add personal one
+    logger.remove()
+    logger.add(sys.stderr, level=loglevel)
 
+    if type(clf_params_dict) is not dict:
+        logger.error(f'Input must be clf_params_dict dictionary, but data type was {type(clf_params_dict)}.')
+        return      
 
+    required_keys = ['required_features', 'type',]
+    optional_keys = ['class_names', 'info', 'invalid_swaths', 'label_index_mapping', 'n_class', 'n_feat', 'trained_classes']
+    GLIA_keys = ['a', 'b', 'IA_0', 'mu', 'Sigma']
+    gaussian_keys = ['mu', 'Sigma']
 
+# -------------------------------------------------------------------------- #
 
+    # set return variable to True as default
+    valid_clf_params_dict = True
 
+    keys = clf_params_dict.keys()
+    logger.debug(f'clf_params_dict.keys(): {keys}')
 
+# -------------------------------------------------------------------------- #
 
+    # check required keys
+    logger.debug('Checking required keys')
+    for k in required_keys:
+        logger.debug(f'----Checking {k}')
+        if not k in keys:
+            logger.error(f'clf_params_dict does not contain [{k}] key')
+            valid_clf_params_dict = False
 
+    # check gaussian keys
+    if clf_params_dict['type'] == 'gaussian':
+        logger.debug('Checking gaussian keys')
+        for k in gaussian_keys:
+            logger.debug(f'----Checking {k}')
+            if not k in keys:
+                logger.error(f'clf_params_dict does not contain [{k}] key')
+                valid_clf_params_dict = False
 
+    # check GLIA keys
+    elif clf_params_dict['type'] == 'GLIA':
+        logger.debug('Checking GLIA keys')
+        for k in GLIA_keys:
+            logger.debug(f'----Checking {k}')
+            if not k in keys:
+                logger.error(f'clf_params_dict does not contain [{k}] key')
+                valid_clf_params_dict = False
 
+    # check optional keys
+    if check_optional_keys:
+        logger.debug('Checking optional keys')
+        for k in optional_keys:
+            logger.debug(f'----Checking {k}')
+            if not k in keys:
+                logger.error(f'clf_params_dict does not contain {k} key')
+                valid_clf_params_dict = False
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    return valid_clf_params_dict
 
 # -------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------- #
@@ -610,58 +645,24 @@ def inspect_classifier_pickle_file(clf_pickle_file, loglevel='INFO'):
 # -------------------------------------------------------------------------- #
 
     # load classifier dictionary
-    clf_dict = read_classifier_dict_from_pickle(clf_pickle_path.as_posix())
+    clf_params_dict = read_classifier_dict_from_pickle(clf_pickle_path.as_posix())
 
-    # check that pickle file contains a dictionary
-    if type(clf_dict) is not dict:
-        logger.error(f'Expected a classifier dictionary, but type is {type(clf_dict)}')
+    # check that the dictionary contains all parameters
+    valid_dict = check_clf_params_dict(clf_params_dict, check_optional_keys=True, loglevel=loglevel)
+
+    if not valid_dict:
+        logger.error(f'The input file does not contain a valid clf dictionary')
         return
 
-    logger.debug('pickle file contains a classifier dictionary')
-    logger.debug(f'dict keys are: {list(clf_dict.keys())}')
-
-    if not 'type' in clf_dict.keys():
-        logger.error(f'clf_dict does not contain `type` key')
-        raise KeyError(f'clf_dict does not contain `type` key')
-
-    if not 'required_features' in clf_dict.keys():
-        logger.error(f'clf_dict does not contain `required_features` key')
-        raise KeyError(f'clf_dict does not contain `required_features` key')
-
-    if not 'label_index_mapping' in clf_dict.keys():
-        logger.error(f'clf_dict does not contain `label_index_mapping` key')
-        raise KeyError(f'clf_dict does not contain `label_index_mapping` key')
-
-    if not 'trained_classes' in clf_dict.keys():
-        logger.error(f'clf_dict does not contain `trained_classes` key')
-        raise KeyError(f'clf_dict does not contain `trained_classes` key')
-
-    if not 'invalid_swaths' in clf_dict.keys():
-        logger.error(f'clf_dict does not contain `invalid_swaths` key')
-        raise KeyError(f'clf_dict does not contain `invalid_swaths` key')
-
-    if not 'info' in clf_dict.keys():
-        logger.error(f'clf_dict does not contain `info` key')
-        raise KeyError(f'clf_dict does not contain `info` key')
-
-# -------------------------------------------------------------------------- #
-
-    # a "GLIA" type classifier must have  "a", "b", "Sigma" keys
-    # values in this key are used to build the classifier object
-    # this circumvents issues with changes in the gaussin_linear_IA_classifier module
-
-    if clf_dict['type'] == 'GLIA':
-        if not 'a' in clf_dict.keys() or not 'b' in clf_dict.keys() or not 'Sigma' in clf_dict.keys():
-            logger.error(f'clf type {clf_dict['type']} does not contain all required parameters')
-      
+# -------------------------------------------------------------------------- #      
 
     # extract information for inspection output
-    classifier_type     = clf_dict['type']
-    features            = clf_dict['required_features']
-    label_index_mapping = clf_dict['label_index_mapping']
-    trained_classes     = clf_dict['trained_classes']
-    invalid_swaths      = clf_dict['invalid_swaths']
-    info                = clf_dict['info']
+    classifier_type     = clf_params_dict['type']
+    features            = clf_params_dict['required_features']
+    label_index_mapping = clf_params_dict['label_index_mapping']
+    trained_classes     = clf_params_dict['trained_classes']
+    invalid_swaths      = clf_params_dict['invalid_swaths']
+    info                = clf_params_dict['info']
 
 
     print(f'\n=== CLASSIFIER ===')
@@ -684,10 +685,10 @@ def inspect_classifier_pickle_file(clf_pickle_file, loglevel='INFO'):
     print('\n=== INVALID SWATHS: ===')
     print(f'{invalid_swaths}')
 
-    if 'texture_settings' in clf_dict.keys():
+    if 'texture_settings' in clf_params_dict.keys():
         print('\n=== TEXTURE PARAMETER SETTINGS: ===')
-        for idx, key in enumerate(clf_dict['texture_settings']):
-            print(f'{key}: {clf_dict["texture_settings"][key]}')
+        for idx, key in enumerate(clf_params_dict['texture_settings']):
+            print(f'{key}: {clf_params_dict["texture_settings"][key]}')
 
     print('\n=== INFO: ===')
     print(f'{info}')
