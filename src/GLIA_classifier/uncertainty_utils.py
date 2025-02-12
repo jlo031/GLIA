@@ -37,8 +37,8 @@ def get_mahalanobis_distance(
     mu_vec : numpy array of mean values of each of C classes over d dimensions [C, d]
     cov_mat : numpy array of covariance matrices of C classes over d dimensions [C, d, d]
     IA_test : numpy arry of N samples with IA values (for models with linearly variable mean vector)
-    IA_0: IA test value (for models with linearly variable mean vector)
-    IA_slope : numoy array of C classes and d dimensions with slope values [C, d](for models with linearly variable mean vector)
+    IA_0 : IA test value (for models with linearly variable mean vector)
+    IA_slope : numpy array of C classes and d dimensions with slope values [C, d](for models with linearly variable mean vector)
     loglevel : loglevel setting (default='INFO')
 
     Returns
