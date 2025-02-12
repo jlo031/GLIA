@@ -1,9 +1,3 @@
-# ---- This is <classification.py> ----
-
-"""
-Module for forward classification of satellite images
-""" 
-
 import argparse
 import os
 import sys
@@ -20,37 +14,29 @@ from osgeo import gdal
 import GLIA_classifier.gaussian_linear_IA_classifier as glia
 import GLIA_classifier.uncertainty_utils as glia_uncertainty_utils
 
-# -------------------------------------------------------------------------- #
-# -------------------------------------------------------------------------- #
 
-def classify_image_from_feature_folder(
-    feature_folder,
-    result_folder,
-    clf_model_path,
-    valid_mask = True,
-    estimate_uncertainties = False,
-    uncertainty_params_dict = [],
-    overwrite = False,
-    loglevel = 'INFO',
-):
+feature_folder           = 'tests/test_data/features/S1A_EW_GRDM_1SDH_20220503T082621_20220503T082725_043044_0523D1_AF89_subsampled'
+result_folder            = 'tests/test_data/results'
+clf_model_path           = 'src/GLIA_classifier/clf_models/belgica_bank_ice_types_2022.pickle'
+valid_mask               = False
+estimate_uncertainties   = True
+uncertainty_params_dict  = []
+overwrite                = True
+loglevel                 = 'DEBUG'
+loglevel                 = 'INFO'
 
-    """Classify input image with classifier from clf_model_path and features from feature_folder 
 
-    Parameters
-    ----------
-    feature_folder : path to input feature folder
-    result_folder : path to result folder where labels file is placed
-    clf_model_path : path to pickle file with classifier model dict
-    estimate_uncertainties : estimate apost and mahal uncertainties (default True)
-    uncertainty_params_dict : dictionary with parameters for uncertainty estimation
-    valid_mask : use valid mask
-    overwrite : overwrite existing files (default=False)
-    loglevel : loglevel setting (default='INFO')
-    """
 
-    # remove default logger handler and add personal one
-    logger.remove()
-    logger.add(sys.stderr, level=loglevel)
+
+
+
+
+
+
+
+
+
+
 
     logger.info('Processing input image for classification')
 
@@ -67,11 +53,11 @@ def classify_image_from_feature_folder(
 
     if not feature_folder.is_dir():
         logger.error(f'Cannot find feature_folder: {feature_folder}')
-        return
+        print('#return')
 
     if not clf_model_path.is_file():
         logger.error(f'Cannot find clf_model_path: {clf_model_path}')
-        return
+        print('#return')
 
     # create result_folder if needed
     result_folder.mkdir(parents=True, exist_ok=True)
@@ -92,7 +78,7 @@ def classify_image_from_feature_folder(
     # check if main outfile already exists
     if result_labels_path.is_file() and not overwrite:
         logger.info('Labels output files already exist, use `-overwrite` to force')
-        return
+        print('#return')
     elif result_labels_path.is_file() and overwrite:
         logger.info('Removing existing output file and classifying again')
         result_labels_path.unlink()
@@ -110,7 +96,7 @@ def classify_image_from_feature_folder(
 
     if not valid_clf_params_dict:
         logger.error(f'Invalid clf_params_dict')
-        return
+        print('#return')
 
     # get clf_type
     clf_type = clf_params_dict['type']
@@ -138,7 +124,7 @@ def classify_image_from_feature_folder(
 
     else:
         logger.error('This clf type is not implemented in this library')
-        return
+        print('#return')
 
 # -------------------------------------------------------------------------- #
 
@@ -158,7 +144,7 @@ def classify_image_from_feature_folder(
 
         if f'{f}.img' not in existing_features:
             logger.error(f'Could not find required feature: {f}.img')
-            return
+            print('#return')
         else:
             feature_dict[f] = gdal.Open((feature_folder/f'{f}.img').as_posix()).ReadAsArray()
 
@@ -172,7 +158,7 @@ def classify_image_from_feature_folder(
         Ny_current, Nx_current = feature_dict[key].shape
         if not Nx == Nx_current or not Ny == Ny_current:
             logger.error(f'Image dimensions of required features do not match')
-            return
+            print('#return')
 
 # -------------------------------------------------------------------------- #
 
@@ -182,7 +168,7 @@ def classify_image_from_feature_folder(
 
         if 'valid.img' not in existing_features:
             logger.error(f'Could not find valid mask: valid.img')
-            return
+            print('#return')
         else:
             logger.info('Loading valid mask')
             valid_mask = gdal.Open((feature_folder/'valid.img').as_posix()).ReadAsArray()
@@ -190,7 +176,7 @@ def classify_image_from_feature_folder(
         # check that valid_mask dimensions match feature dimensions
         if not valid_mask.shape[0]==Ny and valid_mask.shape[1]==Nx:
             logger.error(f'valid_mask dimensions do not match feature dimensions')
-            return
+            print('#return')
 
     else:
         valid_mask = np.ones(shape)
@@ -204,7 +190,7 @@ def classify_image_from_feature_folder(
         # check that IA.img exists
         if 'IA.img' not in existing_features:
             logger.error(f'Could not find IA mask: IA.img')
-            return
+            print('#return')
         else:
             logger.info('Loading IA mask')
             IA = gdal.Open((feature_folder/'IA.img').as_posix()).ReadAsArray()
@@ -212,7 +198,7 @@ def classify_image_from_feature_folder(
         # check that IA dimensions match feature dimensions
         if not IA.shape[0]==Ny and IA.shape[1]==Nx:
             logger.error(f'IA dimensions do not match featured imensions')
-            return
+            print('#return')
 
 # -------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------- #
@@ -297,7 +283,7 @@ def classify_image_from_feature_folder(
         # check if main outfile already exists
         if result_mahal_path.is_file() and not overwrite:
             logger.info('Uncertainty output files already exist, use `-overwrite` to force')
-            return
+            print('#return')
         elif result_mahal_path.is_file() and overwrite:
             logger.info('Removing existing uncertainty output file and estimating again')
             result_mahal_path.unlink(missing_ok=True)
@@ -320,7 +306,7 @@ def classify_image_from_feature_folder(
             n_features           = int(clf_params_dict['n_feat'])
         else:
             logger.error('This clf type is not implemented in this library')
-            return
+            print('#return')
 
 
         # set default values for uncertainty estimation
@@ -341,7 +327,7 @@ def classify_image_from_feature_folder(
             logger.info('Using default parameters for uncertainty estimation')
         elif type(uncertainty_params_dict) is not dict:
             logger.error(f'uncertainty_params_dict must be a dictionary, but data type was {type(uncertainty_params_dict)}.')
-            return
+            print('#return')
 
         else:
             logger.info('Using parameters from uncertainty_params_dict for uncertainty estimation')
@@ -392,7 +378,11 @@ def classify_image_from_feature_folder(
         if uncertainty_apost is not False:
             uncertainty_apost  = np.reshape(uncertainty_apost, shape)
 
-        # write uncertainties
+        logger.info('... finished')
+
+# -------------------------------------------------------------------------- #
+
+
         if uncertainty_mahal is not False:
             output_mahal = gdal.GetDriverByName('Envi').Create(result_mahal_path.as_posix(), Nx, Ny, 1, gdal.GDT_Float32)
             output_mahal.GetRasterBand(1).WriteArray(uncertainty_mahal)
@@ -401,17 +391,7 @@ def classify_image_from_feature_folder(
             output_apost = gdal.GetDriverByName('Envi').Create(result_apost_path.as_posix(), Nx, Ny, 1, gdal.GDT_Float32)
             output_apost.GetRasterBand(1).WriteArray(uncertainty_apost)
             output_apost.FlushCache()
-	    
-        logger.info('... finished')
-
-# -------------------------------------------------------------------------- #
 
     logger.info(f'Result writtten to {result_labels_path}')
 
-# -------------------------------------------------------------------------- #
-# -------------------------------------------------------------------------- #
-# -------------------------------------------------------------------------- #
-# -------------------------------------------------------------------------- #
-# -------------------------------------------------------------------------- #
 
-# ---- End of <classifcation.py> ----
