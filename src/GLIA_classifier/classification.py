@@ -26,22 +26,22 @@ import GLIA_classifier.uncertainty_utils as glia_uncertainty_utils
 def classify_image_from_feature_folder(
     feature_folder,
     result_folder,
-    classifier_model_path,
+    clf_model_path,
     valid_mask = True,
-    uncertainties = False,
+    estimate_uncertainties = False,
     uncertainty_params_dict = [],
     overwrite = False,
     loglevel = 'INFO',
 ):
 
-    """Classify input image
+    """Classify input image with classifier from clf_model_path and features from feature_folder 
 
     Parameters
     ----------
-    feat_folder : path to input feature folder
+    feature_folder : path to input feature folder
     result_folder : path to result folder where labels file is placed
-    classifier_model_path : path to pickle file with classifier model dict
-    uncertainties : estimate apost and mahal uncertainties (default True)
+    clf_model_path : path to pickle file with classifier model dict
+    estimate_uncertainties : estimate apost and mahal uncertainties (default True)
     uncertainty_params_dict : dictionary with parameters for uncertainty estimation
     valid_mask : use valid mask
     overwrite : overwrite existing files (default=False)
@@ -52,31 +52,31 @@ def classify_image_from_feature_folder(
     logger.remove()
     logger.add(sys.stderr, level=loglevel)
 
-    logger.info('Classifying input image')
+    logger.info('Processing input image for classification')
 
 # -------------------------------------------------------------------------- #
 
     # convert folder strings to paths
-    feat_folder           = pathlib.Path(feat_folder).resolve()
-    result_folder         = pathlib.Path(result_folder).resolve()
-    classifier_model_path = pathlib.Path(classifier_model_path).resolve()
+    feature_folder = pathlib.Path(feature_folder).resolve()
+    result_folder  = pathlib.Path(result_folder).resolve()
+    clf_model_path = pathlib.Path(clf_model_path).resolve()
 
-    logger.debug(f'feat_folder: {feat_folder}')
+    logger.debug(f'feature_folder: {feature_folder}')
     logger.debug(f'result_folder: {result_folder}')
-    logger.debug(f'classifier_model_path: {classifier_model_path}')
+    logger.debug(f'clf_model_path: {clf_model_path}')
 
-    if not feat_folder.is_dir():
-        logger.error(f'Cannot find feat_folder: {feat_folder}')
+    if not feature_folder.is_dir():
+        logger.error(f'Cannot find feature_folder: {feature_folder}')
         return
 
-    if not classifier_model_path.is_file():
-        logger.error(f'Cannot find classifier_model_path: {classifier_model_path}')
+    if not clf_model_path.is_file():
+        logger.error(f'Cannot find clf_model_path: {clf_model_path}')
         return
 
 # -------------------------------------------------------------------------- #
 
-    # get input basename from feat_folder
-    f_base = feat_folder.stem
+    # get input basename from feature_folder
+    f_base = feature_folder.stem
 
     logger.debug(f'f_base: {f_base}')
 
@@ -110,10 +110,10 @@ def classify_image_from_feature_folder(
     # GET BASIC CLASSIFIER INFO
 
     # load classifier dictionary
-    clf_params_dict = glia.read_classifier_dict_from_pickle(classifier_model_path.as_posix())
+    clf_params_dict = glia.read_classifier_dict_from_pickle(clf_model_path.as_posix())
 
     # check that it is a valid classifier dict with all required information
-    valid_clf_params_dict = glia.check_clf_params_dict(clf_params_dict)
+    valid_clf_params_dict = glia.check_clf_params_dict(clf_params_dict, loglevel=loglevel)
 
     if not valid_clf_params_dict:
         logger.error(f'Invalid clf_params_dict')
@@ -145,26 +145,26 @@ def classify_image_from_feature_folder(
 # -------------------------------------------------------------------------- #
 
     # PREPARE UNCERTAINTY ESTIMATION
-    """
-    if uncertainties:
-        logger.info('Uncertainties is set to "True"')
+
+    if estimate_uncertainties:
+        logger.info('Preparing uncertainty estimation')
 
         # extract clf parameters needed for uncertainties
-        if clf_type == 'gaussian_IA':
-            mu_vec_all_classes  = classifier_dict['gaussian_IA_params']['mu']
-            cov_mat_all_classes = classifier_dict['gaussian_IA_params']['Sigma']
-            n_classes           = int(classifier_dict['gaussian_IA_params']['n_class'])
-            n_features          = int(classifier_dict['gaussian_IA_params']['n_feat'])
-            IA_0                = classifier_dict['gaussian_IA_params']['IA_0']
-            IA_slope            = classifier_dict['gaussian_IA_params']['b']
+        if clf_type == 'GLIA':
+            mu_vec_all_classes  = clf_params_dict['mu']
+            cov_mat_all_classes = clf_params_dict['Sigma']
+            n_classes           = int(clf_params_dict['n_class'])
+            n_features          = int(clf_params_dict['n_feat'])
+            IA_0                = clf_params_dict['IA_0']
+            IA_slope            = clf_params_dict['b']
         elif clf_type =='gaussian':
-            mu_vec_all_classes   = classifier_dict['gaussian_params']['mu']
-            cov_vmat_all_classes = classifier_dict['gaussian_params']['Sigma']
-            n_classes            = int(classifier_dict['gaussian_params']['n_class'])
-            n_features           = int(classifier_dict['gaussian_params']['n_feat'])
+            mu_vec_all_classes   = clf_params_dict['mu']
+            cov_vmat_all_classes = clf_params_dict['Sigma']
+            n_classes            = int(clf_params_dict['n_class'])
+            n_features           = int(clf_params_dict['n_feat'])
         else:
-            logger.error('This clf type is not implemented yet')
-            raise NotImplementedError('This clf type is not implemented yet')
+            logger.error('This clf type is not implemented in this library')
+            return
 
 
         # set default values for uncertainty estimation
@@ -180,36 +180,36 @@ def classify_image_from_feature_folder(
 
         valid_uncertainty_keys = uncertainty_params.keys()
 
-
-        # user uncertainty_dict if given
-        if uncertainty_dict == []:
+        # user uncertainty_params_dict if given
+        if uncertainty_params_dict == []:
             logger.info('Using default parameters for uncertainty estimation')
-
-        elif type(uncertainty_dict) == dict:
-            logger.info('Using parameters from uncertainty_dict for uncertainty estimation')
-
-            uncertainty_keys = uncertainty_dict.keys()
-            logger.debug(f'uncertainty_dict.keys(): {uncertainty_keys}')
-
-            # overwrite uncertainty_params with correct values from uncertainty_dict
-            for key in uncertainty_keys:
-                if key in valid_uncertainty_keys:
-                    logger.debug(f'overwriting default value for "{key}" with: {uncertainty_dict[key]}')
-                    uncertainty_params[key] = uncertainty_dict[key]
-                else:
-                    logger.warning(f'uncertainty_dict key "{key}" is unknown and will not be used')
+        elif type(uncertainty_params_dict) is not dict:
+            logger.error(f'uncertainty_params_dict must be a dictionary, but data type was {type(uncertainty_params_dict)}.')
+            return
 
         else:
-            logger.warning(f'Expected "uncertainty_dict" of type "dict", but found type "{type(uncertainty_dict)}"')
-            logger.warning('Using default parameters for uncertainty estimation')
-    """
+            logger.info('Using parameters from uncertainty_params_dict for uncertainty estimation')
+
+            uncertainty_keys = uncertainty_params_dict.keys()
+            logger.debug(f'uncertainty_params_dict.keys(): {uncertainty_keys}')
+
+            # overwrite uncertainty_params with correct values from uncertainty_params_dict
+            for key in uncertainty_keys:
+                if key in valid_uncertainty_keys:
+                    logger.debug(f'overwriting default value for "{key}" with: {uncertainty_params_dict[key]}')
+                    uncertainty_params[key] = uncertainty_params_dict[key]
+                else:
+                    logger.warning(f'uncertainty_params_dict key "{key}" is unknown and will not be used')
+
 # -------------------------------------------------------------------------- #
 
-    # CHECK EXISTING AND REQUIRED FEATURES
-    # AND LOAD DATA
+    # CHECK ADN LOAD FEATURES
 
     # get list of existing features
-    existing_features = sorted([f for f in os.listdir(feature_folder) if f.endswith('img') or f.endswith('tif') or f.endswith('tiff')])
+    existing_features = sorted([f for f in os.listdir(feature_folder)])
+
+    logger.debug(f'Found feature files in feature_folder: {existing_features}')
+    logger.info('Loading required features')
 
     # features will be read into a dictionary
     feature_dict = dict()
@@ -217,13 +217,11 @@ def classify_image_from_feature_folder(
     # loop through required features, check, and load
     for f in required_features:
 
-        feature_found = False
-
-        if f'{f}.img' in existing_features:
-            feature_found = True
+        if f'{f}.img' not in existing_features:
+            logger.error(f'Could not find required feature: {f}.img')
+            return
+        else:
             feature_dict[f] = gdal.Open((feature_folder/f'{f}.img').as_posix()).ReadAsArray()
-         # check for tif/tiff and avoid doubles 
-
 
     # get Nx and Ny from first required feature
     Ny, Nx = feature_dict[required_features[0]].shape
@@ -239,32 +237,38 @@ def classify_image_from_feature_folder(
 
 # -------------------------------------------------------------------------- #
 
-    # CHECK VALID MASK
+    # CHECK AND LOAD VALID MASK
 
     if valid_mask:
-        logger.info('Using valid mask')
 
-
-        if 'valid.img' in existing_features:
+        if 'valid.img' not in existing_features:
+            logger.error(f'Could not find valid mask: valid.img')
+            return
+        else:
+            logger.info('Loading valid mask')
             valid_mask = gdal.Open((feature_folder/'valid.img').as_posix()).ReadAsArray()
-        # same clever way to check for tif/tiff
 
         # check that valid_mask dimensions match feature dimensions
-        if not valid_mask.shape[0]==Ny and valid_mask.shape[1]==Hx:
-            logger.error(f'valid_mask dimensions do not match featured imensions')
+        if not valid_mask.shape[0]==Ny and valid_mask.shape[1]==Nx:
+            logger.error(f'valid_mask dimensions do not match feature dimensions')
             return
+
+    else:
+        valid_mask = np.ones(shape)
 
 # ---------------------------------- #
 
-    # CHECK IA MASK
+    # CHECK AND LOAD IA MASK
 
     if clf_type == 'GLIA':
-        logger.info('Classifier requires IA information')
 
         # check that IA.img exists
-        if 'IA.img' in existing_features:
+        if 'IA.img' not in existing_features:
+            logger.error(f'Could not find IA mask: IA.img')
+            return
+        else:
+            logger.info('Loading IA mask')
             IA = gdal.Open((feature_folder/'IA.img').as_posix()).ReadAsArray()
-        # same checks as above
 
         # check that IA dimensions match feature dimensions
         if not IA.shape[0]==Ny and IA.shape[1]==Nx:
@@ -273,18 +277,19 @@ def classify_image_from_feature_folder(
 
 # -------------------------------------------------------------------------- #
 
-    """
-    may not be needed without memory mapping
     # initialize labels and probabilities
-    labels_img = np.zeros(N)
+    labels = np.zeros(N)
 
-    if uncertainties:
-        # for uncertainties
-        mahal_img  = np.zeros((N,n_classes))
-        mahal_img.fill(np.nan)
-        probs_img  = np.zeros((N,n_classes))
-        probs_img.fill(np.nan)
+    if estimate_uncertainties:
+        mahal = np.zeros((N,n_classes))
+        mahal.fill(np.nan)
+        probs = np.zeros((N,n_classes))
+        probs.fill(np.nan)
 
+
+
+
+    """
     # find number of blocks from block_size
     n_blocks   = int(np.ceil(N/block_size))
 
@@ -297,74 +302,74 @@ def classify_image_from_feature_folder(
     log_percs   = np.array([0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9])
     perc_blocks = np.ceil(np.array(n_blocks)*log_percs).astype(int)
     """
-
 # -------------------------------------------------------------------------- #
-
-    labels = np.zeros(N)
-
-    if uncertainties:
-        mahal  = np.zeros((N,n_classes))
-        mahal.fill(np.nan)
-        probs  = np.zeros((N,n_classes))
-        probs.fill(np.nan)
-
-
 
     # STACK FEATURES TO FEATURE, VALID, AND IA VECTORS
 
-    X
-    valid_vec
-    IA_vec
+    # initialize stacked feature vector
+    X = np.zeros((N, len(required_features)))
+
+    for i,feature in enumerate(required_features):
+        X[:,i] = feature_dict[feature].flatten()
+
+    IA = IA.flatten()
+    valid_mask = valid_mask.flatten()
+
+    ##return feature_dict, IA, valid_mask, X
 
 # -------------------------------------------------------------------------- #
 
     # CLASSIFY
 
     # predict labels where valid==1
-    if clf_type == 'gaussian_IA':
+    if clf_type == 'GLIA':
 
-        if uncertainties:
-            labels[valid_vec==1], probs[valid_vec==1] = clf.predict(X_vec, IA_vec)
+        if estimate_uncertainties:
+            labels[valid_mask==1], probs[valid_mask==1] = clf.predict(X[valid_mask==1], IA[valid_mask==1])
 
             # for uncertainties
             logger.debug('Estimating mahal_img for current block')
-            mahal[valid_vec] = uncertainty_utils.get_mahalanobis_distance(X, mu_vec_all_classes, cov_mat_all_classes, IA_test=IA_vec, IA_0=IA_0, IA_slope=IA_slope)
+            mahal[valid_mask==1] = glia_uncertainty_utils.get_mahalanobis_distance(X[valid_mask==1], mu_vec_all_classes, cov_mat_all_classes, IA_test=IA[valid_mask==1], IA_0=IA_0, IA_slope=IA_slope)
 	
         else:
-            labels[valid_vec==1], _ = clf.predict(X, IA_vec)
+            labels[valid_mask==1], _ = clf.predict(X[valid_mask==1], IA[valid_mask==1])
 
 
     elif clf_type == 'gaussian':
 
-        if uncertainties:
-            labels[valid_vec==1],probs[valid_block==1] = clf.predict(X)
+        if estimate_uncertainties:
+            labels[valid_mask==1],probs[valid_mask==1] = clf.predict(X[valid_mask==1])
 
             # for uncertainties
             logger.debug('Estimating mahal for current block')
-            mahal_img[valid_vec==1] = uncertainty_utils.get_mahalanobis_distance(X, mu_vec_all_classes, cov_mat_all_classes)
+            mahal[valid_mask==1] = glia_uncertainty_utils.get_mahalanobis_distance(X[valid_mask==1], mu_vec_all_classes, cov_mat_all_classes)
 
         else:
-            labels[valid_block==1], _ = clf.predict(X)
+            labels[valid_mask==1], _ = clf.predict(X[valid_mask==1])
 
     else:
-        logger.error('This clf type is not implemented yet')
+        logger.error('This clf type is not implemented in this library')
+        return
 
 
 
     # set labels to 0 where valid==0
-    labels_img[idx_start:idx_end][valid_block==0] = 0
+    labels[valid_mask==0] = 0
+
+    if estimate_uncertainties:
+        mahal[valid_mask==0] = 0
 
     logger.info('Finished classification')
 
 # -------------------------------------------------------------------------- #
 
-    if uncertainties:
+    if estimate_uncertainties:
 
         logger.info('Estimating apost and mahal uncertainties')
 
-        uncertainty_apost, uncertainty_mahal = uncertainty_utils.uncertainty(
-            probs_img,
-            mahal_img,
+        uncertainty_apost, uncertainty_mahal = glia_uncertainty_utils.uncertainty(
+            probs,
+            mahal,
             n_features,
             apost_uncertainty_meausure = uncertainty_params['apost_uncertainty_measure'],
             DO_apost_uncertainty = uncertainty_params['DO_apost_uncertainty'],
@@ -379,9 +384,9 @@ def classify_image_from_feature_folder(
 # -------------------------------------------------------------------------- #
 
     # reshape to image geometry
-    labels_img = np.reshape(labels_img, shape)
+    labels = np.reshape(labels, shape)
 
-    if uncertainties:
+    if estimate_uncertainties:
         if uncertainty_mahal is not False:
             uncertainty_mahal  = np.reshape(uncertainty_mahal, shape)
         if uncertainty_apost is not False:
@@ -395,23 +400,23 @@ def classify_image_from_feature_folder(
     result_folder.mkdir(parents=True, exist_ok=True)
 
     # write labels
-    output_labels = gdal.GetDriverByName('Envi').Create(result_path.as_posix(), Nx, Ny, 1, gdal.GDT_Byte)
-    output_labels.GetRasterBand(1).WriteArray(labels_img)
+    output_labels = gdal.GetDriverByName('Envi').Create(result_labels_path.as_posix(), Nx, Ny, 1, gdal.GDT_Byte)
+    output_labels.GetRasterBand(1).WriteArray(labels)
     output_labels.FlushCache()
 
 
     # write uncertainties
-    if uncertainties:
+    if estimate_uncertainties:
         if uncertainty_mahal is not False:
-            output_mahal = gdal.GetDriverByName('Envi').Create(result_path_mahal.as_posix(), Nx, Ny, 1, gdal.GDT_Float32)
+            output_mahal = gdal.GetDriverByName('Envi').Create(result_mahal_path.as_posix(), Nx, Ny, 1, gdal.GDT_Float32)
             output_mahal.GetRasterBand(1).WriteArray(uncertainty_mahal)
             output_mahal.FlushCache()
         if uncertainty_apost is not False:
-            output_apost = gdal.GetDriverByName('Envi').Create(result_path_apost.as_posix(), Nx, Ny, 1, gdal.GDT_Float32)
+            output_apost = gdal.GetDriverByName('Envi').Create(result_apost_path.as_posix(), Nx, Ny, 1, gdal.GDT_Float32)
             output_apost.GetRasterBand(1).WriteArray(uncertainty_apost)
             output_apost.FlushCache()
 
-    logger.info(f'Result writtten to {result_path}')
+    logger.info(f'Result writtten to {result_labels_path}')
 
 # -------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------- #
