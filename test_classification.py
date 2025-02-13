@@ -18,7 +18,7 @@ import GLIA_classifier.uncertainty_utils as glia_uncertainty_utils
 feature_folder           = 'tests/test_data/features/S1A_EW_GRDM_1SDH_20220503T082621_20220503T082725_043044_0523D1_AF89_subsampled'
 result_folder            = 'tests/test_data/results'
 clf_model_path           = 'src/GLIA_classifier/clf_models/belgica_bank_ice_types_2022.pickle'
-valid_mask               = False
+use_valid_mask               = True
 estimate_uncertainties   = True
 uncertainty_params_dict  = []
 overwrite                = True
@@ -164,7 +164,7 @@ loglevel                 = 'INFO'
 
     # CHECK AND LOAD VALID MASK
 
-    if valid_mask:
+    if use_valid_mask:
 
         if 'valid.img' not in existing_features:
             logger.error(f'Could not find valid mask: valid.img')
@@ -348,7 +348,7 @@ loglevel                 = 'INFO'
         logger.info('Estimating apost and mahal uncertainties ...')
 
         mahal = np.zeros((N,n_classes))
-        mahal.fill(np.nan)
+        mahal.fill(0)
 
         if clf_type == 'GLIA':
             mahal[valid_mask==1] = glia_uncertainty_utils.get_mahalanobis_distance(X[valid_mask==1], mu_vec_all_classes, cov_mat_all_classes, IA_test=IA[valid_mask==1], IA_0=IA_0, IA_slope=IA_slope)

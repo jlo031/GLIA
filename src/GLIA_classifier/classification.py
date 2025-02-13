@@ -27,7 +27,7 @@ def classify_image_from_feature_folder(
     feature_folder,
     result_folder,
     clf_model_path,
-    valid_mask = True,
+    use_valid_mask = True,
     estimate_uncertainties = False,
     uncertainty_params_dict = [],
     overwrite = False,
@@ -43,7 +43,7 @@ def classify_image_from_feature_folder(
     clf_model_path : path to pickle file with classifier model dict
     estimate_uncertainties : estimate apost and mahal uncertainties (default True)
     uncertainty_params_dict : dictionary with parameters for uncertainty estimation
-    valid_mask : use valid mask
+    use_valid_mask : use valid mask
     overwrite : overwrite existing files (default=False)
     loglevel : loglevel setting (default='INFO')
     """
@@ -178,7 +178,7 @@ def classify_image_from_feature_folder(
 
     # CHECK AND LOAD VALID MASK
 
-    if valid_mask:
+    if use_valid_mask:
 
         if 'valid.img' not in existing_features:
             logger.error(f'Could not find valid mask: valid.img')
