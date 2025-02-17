@@ -67,7 +67,7 @@ for i,img in enumerate(img_list):
         current_feature_dir,
         results_dir,
         clf_model_path,
-        valid_mask = use_valid_mask,
+        use_valid_mask = use_valid_mask,
         estimate_uncertainties = estimate_uncertainties,
         uncertainty_params_dict = uncertainty_params_dict,
         overwrite = overwrite,
