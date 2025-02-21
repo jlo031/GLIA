@@ -67,7 +67,7 @@ If you already have a trained classifier model or want to run one of the models 
     )
 
 The features must be stored in *ENVI* format (e.g. *Sigma0_HH_db.img* and *Sigma0_HH_db.hdr*). The code will check that the pickle file contains a valid classifier dictionary with all necessary parameters and that the required features exist in the feature_folder. If using the valid mask (*use_valid_mask=True*), there must be a file called *valid.img* in the featur folder. Only pixels with the valid mask = 1 will be classified.  
-An example of how to perform batch classification of multiple images is provided in *tests/batch_classification.py*.
+An example of how to perform batch classification of multiple images is provided in *examples/batch_classification.py*.
 
 #### 3.2) Use the GLIA.gaussian_linear_IA_classifier module
 
