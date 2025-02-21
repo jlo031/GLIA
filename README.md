@@ -51,7 +51,7 @@ You can check the succesful installation by running the scripts provided in the 
 
 If you already have a trained classifier model or want to run one of the models provided in this library, you can perform a classification from a feature folder. It is up to the user to extract the features and name them correctly.
 
-    # import GLIA_classifier.classification as glass
+    import GLIA_classifier.classification as glass
     feature_folder = '/path/to/folder/with/extracted/features'
     results_folder = '/path/to/folder/with/results'
     clf_model_path = '/path/to/classifier/pickle/file'
