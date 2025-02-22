@@ -34,6 +34,7 @@ estimate_uncertainties = True
 uncertainty_params_dict = []
 overwrite = True
 loglevel = 'INFO'
+loglevel = 'DEBUG'
 
 # -------------------------------------------------------------------------- #
 

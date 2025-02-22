@@ -249,6 +249,9 @@ def classify_image_from_feature_folder(
     IA = IA.flatten()
     valid_mask = valid_mask.flatten()
 
+    # delete the feature_dict to clear space
+    feature_dict = None
+
 # -------------------------------------------------------------------------- #
 
     # CLASSIFY
@@ -277,6 +280,8 @@ def classify_image_from_feature_folder(
     output_labels.FlushCache()
 
     logger.info('... finished')
+
+    logger.info(f'Result writtten to {result_labels_path}')
 
 # -------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------- #
@@ -404,9 +409,8 @@ def classify_image_from_feature_folder(
 	    
         logger.info('... finished')
 
-# -------------------------------------------------------------------------- #
-
-    logger.info(f'Result writtten to {result_labels_path}')
+        logger.info(f'Result writtten to {result_mahal_path}')
+        logger.info(f'Result writtten to {result_apost_path}')
 
 # -------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------- #
